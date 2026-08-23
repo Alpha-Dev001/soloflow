@@ -1,0 +1,19 @@
+{
+  "name": "soloflow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SoloFlow — freelance business management platform",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run start:dev --workspace=backend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "typecheck": "npm run typecheck --workspace=frontend && npm run typecheck --workspace=backend",
+    "seed": "npm run seed --workspace=backend",
+    "install:all": "npm install --workspace=frontend --workspace=backend --legacy-peer-deps"
+  }
+}

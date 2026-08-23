@@ -1,0 +1,430 @@
+@import "tailwindcss";
+
+/* ── Font Definitions ── */
+:root {
+  --font-display: 'Iceberg', cursive;
+  --font-heading: 'Iceberg', cursive;
+  --font-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Iceberg', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Iceberg', sans-serif;
+}
+
+/* Apply display font to main brand elements */
+.brand-name,
+.logo-text,
+.nav-brand {
+  font-family: var(--font-display);
+}
+
+/* Apply elegant serif font to section headings */
+h1 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h2,
+h3 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+
+/* Body text uses Lato for excellent readability */
+body {
+  font-family: var(--font-body);
+}
+
+/* Utility classes for explicit font usage */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* ── Smooth Scrolling ── */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ── Scroll Reveal Animations ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered children reveal */
+.reveal-stagger>* {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-stagger.is-visible>* {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-stagger.is-visible>*:nth-child(1) {
+  transition-delay: 0.05s;
+}
+
+.reveal-stagger.is-visible>*:nth-child(2) {
+  transition-delay: 0.12s;
+}
+
+.reveal-stagger.is-visible>*:nth-child(3) {
+  transition-delay: 0.19s;
+}
+
+.reveal-stagger.is-visible>*:nth-child(4) {
+  transition-delay: 0.26s;
+}
+
+.reveal-stagger.is-visible>*:nth-child(5) {
+  transition-delay: 0.33s;
+}
+
+.reveal-stagger.is-visible>*:nth-child(6) {
+  transition-delay: 0.40s;
+}
+
+/* ── Auth Page Entrance Animations ── */
+@keyframes authFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-panel-form {
+  /* No entrance animation — instant transition between login and register */
+  animation: none;
+}
+
+.auth-panel-brand {
+  animation: authFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.auth-fade-item {
+  animation: authFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Subtle grain texture for dark brand panels ── */
+.auth-grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ── Subtle paper texture for light surfaces (cards, panels) ── */
+.texture-light {
+  isolation: isolate;
+}
+
+.texture-light::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: radial-gradient(rgba(74, 59, 50, 0.05) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* ── Fine linen texture for warm neutral surfaces ── */
+.texture-linen {
+  isolation: isolate;
+}
+
+.texture-linen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image:
+    radial-gradient(rgba(74, 59, 50, 0.04) 1px, transparent 1px),
+    linear-gradient(rgba(74, 59, 50, 0.02) 1px, transparent 1px);
+  background-size: 14px 14px, 7px 7px;
+}
+
+/* ── Warm linen texture for dark surfaces (keeps tint subtle) ── */
+.texture-linen-dark {
+  isolation: isolate;
+}
+
+.texture-linen-dark::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 16px 16px, 8px 8px;
+}
+
+@layer base {
+  body {
+    font-family: "Iceberg", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
+    background: linear-gradient(135deg, #C9C3BB 0%, #D9D3CB 50%, #E5DFD7 100%);
+    color: #1A1918;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.011em;
+  }
+
+  /* Display serif for headings — warm editorial voice matching the brand palette */
+  h1,
+  h2,
+  h3 {
+    font-family: "Iceberg", sans-serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
+  }
+
+  h4,
+  h5,
+  h6 {
+    letter-spacing: -0.015em;
+  }
+}
+
+/* SoloFlow Premium Button System - Warm Taupe Color Family with Subtle Depth */
+
+/* Primary Button - Warm taupe with sophisticated multi-tone shading */
+.btn-apple-primary {
+  background: linear-gradient(180deg, #7F6A4E 0%, #6F5D42 50%, #604F37 100%);
+  border: 1px solid rgba(96, 79, 55, 0.85);
+  color: #FFFFFF;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-apple-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #8B7355 0%, #7F6A4E 50%, #6F5D42 100%);
+  border-color: rgba(96, 79, 55, 0.95);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.btn-apple-primary:active:not(:disabled) {
+  background: linear-gradient(180deg, #604F37 0%, #534430 50%, #463929 100%);
+  transform: scale(0.98);
+  box-shadow:
+    0 0 0 transparent,
+    inset 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+/* Secondary Button - Light warm neutral surface */
+.btn-apple-secondary {
+  background: linear-gradient(180deg, #F5F3F0 0%, #EFECEA 100%);
+  border: 1px solid rgba(139, 115, 85, 0.22);
+  color: #443A30;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-apple-secondary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #EFECEA 0%, #E9E6E3 100%);
+  border-color: rgba(139, 115, 85, 0.38);
+  color: #382F28;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.btn-apple-secondary:active:not(:disabled) {
+  background: linear-gradient(180deg, #E9E6E3 0%, #E3E0DD 100%);
+  transform: scale(0.98);
+  box-shadow:
+    0 0 0 transparent,
+    inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Outline Button - Subtle warm border */
+.btn-apple-outline {
+  background: linear-gradient(180deg, rgba(245, 243, 240, 0.5) 0%, rgba(239, 236, 234, 0.5) 100%);
+  border: 1px solid rgba(139, 115, 85, 0.28);
+  color: #544730;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-apple-outline:hover:not(:disabled) {
+  background: linear-gradient(180deg, #EFECEA 0%, #E9E6E3 100%);
+  border-color: rgba(139, 115, 85, 0.42);
+  color: #443A30;
+}
+
+.btn-apple-outline:active:not(:disabled) {
+  background: linear-gradient(180deg, #E9E6E3 0%, #E3E0DD 100%);
+  transform: scale(0.98);
+}
+
+/* Ghost Button - Minimal warm treatment */
+.btn-apple-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #6F5D42;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-apple-ghost:hover:not(:disabled) {
+  background: rgba(139, 115, 85, 0.10);
+  color: #544730;
+}
+
+.btn-apple-ghost:active:not(:disabled) {
+  background: rgba(139, 115, 85, 0.15);
+  transform: scale(0.98);
+}
+
+/* Danger Button - Subtle warm red */
+.btn-apple-danger {
+  background: linear-gradient(180deg, #FFF5F5 0%, #FFEFEF 100%);
+  border: 1px solid rgba(200, 100, 80, 0.3);
+  color: #C86450;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-apple-danger:hover:not(:disabled) {
+  background: linear-gradient(180deg, #FFEFEF 0%, #FFE9E9 100%);
+  border-color: rgba(200, 100, 80, 0.45);
+  color: #B85A48;
+}
+
+.btn-apple-danger:active:not(:disabled) {
+  background: linear-gradient(180deg, #FFE9E9 0%, #FFE3E3 100%);
+  transform: scale(0.98);
+}
+
+/* Danger Solid Button - Muted warm red */
+.btn-apple-danger-solid {
+  background: linear-gradient(180deg, #BD5C48 0%, #AD5240 50%, #9D4838 100%);
+  border: 1px solid rgba(157, 72, 56, 0.85);
+  color: #FFFFFF;
+  box-shadow:
+    0 1px 2px rgba(180, 90, 70, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-apple-danger-solid:hover:not(:disabled) {
+  background: linear-gradient(180deg, #C86450 0%, #BD5C48 50%, #AD5240 100%);
+  border-color: rgba(157, 72, 56, 0.95);
+}
+
+.btn-apple-danger-solid:active:not(:disabled) {
+  background: linear-gradient(180deg, #9D4838 0%, #8D4030 50%, #7D3828 100%);
+  transform: scale(0.98);
+}
+
+/* SoloFlow Segmented Control - Warm neutral treatment */
+.segmented-control {
+  background: linear-gradient(180deg, #EFEDEB 0%, #E9E7E5 100%);
+  border: 1px solid rgba(139, 115, 85, 0.15);
+  padding: 2px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+/* ── No reserved scrollbar space (no layout gutter) ── */
+html,
+body {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE / Edge legacy */
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+  /* Chrome / Safari / Edge */
+}
+
+/* SoloFlow Form Inputs - Warm taupe borders */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  border-color: #E5DFD7 !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #8B7355 !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.15);
+}
