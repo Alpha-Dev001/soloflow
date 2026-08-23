@@ -31,6 +31,7 @@ interface DashboardPageProps {
   invoices: Invoice[];
   projects: Project[];
   proposals: Proposal[];
+  isLoading?: boolean;
   onNavigate: (page: NavPage, param?: string) => void;
   onOpenQuickCreate?: (type: 'client' | 'project' | 'proposal' | 'invoice') => void;
 }
@@ -60,6 +61,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   invoices,
   projects,
   proposals,
+  isLoading = false,
   onNavigate,
   onOpenQuickCreate
 }) => {
@@ -282,6 +284,135 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     { label: 'Meeting', type: 'project' as const, fallback: 'calendar' as NavPage },
     { label: 'Expense', type: 'invoice' as const, fallback: 'analytics' as NavPage }
   ];
+
+  // ── Loading skeleton — shown while the first API fetch is in flight ──
+  if (isLoading) {
+    return (
+      <div className="space-y-6 max-w-7xl mx-auto animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex flex-col gap-2">
+          <div className="h-3 w-28 rounded-full" style={{ backgroundColor: T.border }} />
+          <div className="h-8 w-56 rounded-lg" style={{ backgroundColor: T.border }} />
+          <div className="h-3 w-72 rounded-full" style={{ backgroundColor: T.border }} />
+        </div>
+        {/* KPI cards skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-2xl p-5 border" style={{ backgroundColor: T.surface, borderColor: T.border }}>
+              <div className="h-3 w-20 rounded-full mb-3" style={{ backgroundColor: T.bg }} />
+              <div className="h-7 w-24 rounded-lg mb-2" style={{ backgroundColor: T.bg }} />
+              <div className="h-2.5 w-16 rounded-full" style={{ backgroundColor: T.bg }} />
+            </div>
+          ))}
+        </div>
+        {/* Chart + quick actions skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2 rounded-2xl border p-6 h-64" style={{ backgroundColor: T.surface, borderColor: T.border }}>
+            <div className="h-4 w-36 rounded-full mb-2" style={{ backgroundColor: T.bg }} />
+            <div className="h-3 w-24 rounded-full mb-6" style={{ backgroundColor: T.bg }} />
+            <div className="h-32 rounded-xl" style={{ backgroundColor: T.bg }} />
+          </div>
+          <div className="rounded-2xl border p-5 h-64" style={{ backgroundColor: T.surface, borderColor: T.border }}>
+            <div className="h-4 w-28 rounded-full mb-4" style={{ backgroundColor: T.bg }} />
+            <div className="grid grid-cols-2 gap-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="rounded-xl h-16" style={{ backgroundColor: T.bg }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Empty workspace — shown after data loads but the account has nothing yet ──
+  const isEmpty =
+    metrics.totalRevenue === 0 &&
+    metrics.activeProjects === 0 &&
+    metrics.pendingPayments === 0 &&
+    invoices.length === 0 &&
+    projects.length === 0 &&
+    proposals.length === 0;
+
+  if (isEmpty) {
+    const emptyActions = [
+      { label: 'Add a client', description: 'Start by recording the people you work for.', action: () => onOpenQuickCreate ? onOpenQuickCreate('client') : onNavigate('clients') },
+      { label: 'Create a project', description: 'Track deliverables, budgets, and deadlines.', action: () => onOpenQuickCreate ? onOpenQuickCreate('project') : onNavigate('projects') },
+      { label: 'Draft a proposal', description: 'Win work with a professional scope document.', action: () => onOpenQuickCreate ? onOpenQuickCreate('proposal') : onNavigate('proposals') },
+      { label: 'Issue an invoice', description: 'Bill clients and track payments.', action: () => onOpenQuickCreate ? onOpenQuickCreate('invoice') : onNavigate('invoices') },
+    ];
+
+    return (
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Greeting header — same as the populated state */}
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.16em] font-semibold mb-2" style={{ color: T.accent }}>
+            Workspace overview
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em]" style={{ color: T.ink }}>
+            {greeting}, {user?.name?.split(' ')[0] || 'there'}.
+          </h1>
+          <p className="text-sm font-medium mt-1.5" style={{ color: T.body }}>
+            Your workspace is set up. Add your first records to get started.
+          </p>
+        </div>
+
+        {/* Zero-state KPI strip */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'This month', value: `${cur}0` },
+            { label: 'To collect', value: `${cur}0` },
+            { label: 'Active projects', value: '0' },
+            { label: 'Deadlines', value: '0' },
+          ].map(m => (
+            <div
+              key={m.label}
+              className="rounded-2xl border p-5"
+              style={{ backgroundColor: T.surface, borderColor: T.border }}
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: T.muted }}>{m.label}</p>
+              <p className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.borderStrong }}>{m.value}</p>
+              <p className="text-[11px] mt-2" style={{ color: T.muted }}>No data yet</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Action cards */}
+        <div>
+          <h2 className="text-sm font-semibold mb-4" style={{ color: T.ink }}>Where would you like to start?</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {emptyActions.map(action => (
+              <button
+                key={action.label}
+                onClick={action.action}
+                className="group text-left p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(74,59,50,0.08)] cursor-pointer"
+                style={{ backgroundColor: T.surface, borderColor: T.border }}
+              >
+                <p className="text-[13px] font-semibold mb-1.5 group-hover:text-[#82694E] transition-colors" style={{ color: T.ink }}>
+                  {action.label}
+                </p>
+                <p className="text-[11px] leading-relaxed" style={{ color: T.muted }}>
+                  {action.description}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Subtle workspace tip */}
+        <div
+          className="rounded-2xl border px-5 py-4 flex items-start gap-3"
+          style={{ backgroundColor: '#FAF8F5', borderColor: T.border }}
+        >
+          <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: T.accentSoft }} />
+          <p className="text-[12px] leading-relaxed" style={{ color: T.muted }}>
+            Everything you create here — clients, projects, invoices, and proposals — feeds the analytics and revenue charts automatically.
+            The dashboard reflects your real numbers as soon as you start adding records.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">

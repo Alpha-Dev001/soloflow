@@ -68,12 +68,12 @@ export const StaticPageLayout: React.FC<StaticPageLayoutProps> = ({ eyebrow, tit
           className="max-w-6xl mx-auto px-6 transition-all duration-300 ease-out"
           style={{
             borderRadius: '16px',
-            backgroundColor: scrolled ? 'rgba(255,255,255,0.82)' : 'transparent',
-            backdropFilter: scrolled ? 'blur(18px) saturate(170%)' : 'none',
-            WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(170%)' : 'none',
-            border: `1px solid ${scrolled ? T.border : 'transparent'}`,
+            backgroundColor: scrolled ? 'rgba(230, 225, 218, 0.55)' : 'transparent',
+            backdropFilter: scrolled ? 'blur(16px) saturate(160%)' : 'none',
+            WebkitBackdropFilter: scrolled ? 'blur(16px) saturate(160%)' : 'none',
+            border: `1px solid ${scrolled ? 'rgba(255,255,255,0.40)' : 'transparent'}`,
             boxShadow: scrolled
-              ? '0 6px 24px -8px rgba(74,59,50,0.14), 0 1px 4px rgba(74,59,50,0.05)'
+              ? '0 4px 24px -6px rgba(74,59,50,0.12), 0 1px 0 rgba(255,255,255,0.55) inset'
               : 'none',
             height: '64px',
           }}

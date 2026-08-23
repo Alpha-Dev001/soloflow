@@ -12,6 +12,7 @@ interface AnalyticsPageProps {
   projects?: Project[];
   invoices?: Invoice[];
   proposals?: Proposal[];
+  isLoading?: boolean;
 }
 
 /* ── Design tokens (matched to landing & auth pages) ── */
@@ -34,7 +35,8 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
   clients = [],
   projects = [],
   invoices = [],
-  proposals = []
+  proposals = [],
+  isLoading = false
 }) => {
   const { showToast } = useToast();
 
@@ -85,6 +87,50 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
   const handleExport = () => {
     showToast('Analytics summary exported', 'success');
   };
+
+  // ── Loading skeleton ──
+  if (isLoading) {
+    return (
+      <div className="space-y-4 max-w-7xl mx-auto animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-3 w-28 rounded-full" style={{ backgroundColor: T.border }} />
+            <div className="h-7 w-36 rounded-lg" style={{ backgroundColor: T.border }} />
+            <div className="h-3 w-52 rounded-full" style={{ backgroundColor: T.border }} />
+          </div>
+          <div className="h-8 w-20 rounded-lg" style={{ backgroundColor: T.border }} />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-2xl border p-5" style={{ backgroundColor: T.surface, borderColor: T.border }}>
+              <div className="h-3 w-20 rounded-full mb-3" style={{ backgroundColor: T.bg }} />
+              <div className="h-7 w-24 rounded-lg mb-2" style={{ backgroundColor: T.bg }} />
+              <div className="h-2.5 w-16 rounded-full" style={{ backgroundColor: T.bg }} />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[0, 1].map(i => (
+            <div key={i} className="rounded-2xl border p-6" style={{ backgroundColor: T.surface, borderColor: T.border }}>
+              <div className="h-4 w-32 rounded-full mb-2" style={{ backgroundColor: T.bg }} />
+              <div className="h-3 w-24 rounded-full mb-6" style={{ backgroundColor: T.bg }} />
+              <div className="space-y-3">
+                {[...Array(3)].map((_, j) => (
+                  <div key={j} className="space-y-1.5">
+                    <div className="flex justify-between">
+                      <div className="h-3 w-28 rounded-full" style={{ backgroundColor: T.bg }} />
+                      <div className="h-3 w-12 rounded-full" style={{ backgroundColor: T.bg }} />
+                    </div>
+                    <div className="h-1.5 rounded-full w-full" style={{ backgroundColor: T.bg }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto">

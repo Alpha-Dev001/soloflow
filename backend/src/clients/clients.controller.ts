@@ -31,7 +31,7 @@ export class ClientsController {
     @InjectModel(Project.name) private readonly projectModel: Model<any>,
     @InjectModel(Proposal.name) private readonly proposalModel: Model<any>,
     @InjectModel(Invoice.name) private readonly invoiceModel: Model<any>,
-  ) {}
+  ) { }
 
   /** GET /api/clients?search= */
   @Get()
@@ -74,8 +74,18 @@ export class ClientsController {
     const normalize = (arr: any[]) =>
       arr.map((r) => ({ ...r, id: String(r._id), _id: undefined }));
 
+    // Compute totalSpent and projectsCount for the single client
+    const totalSpent = invoices
+      .filter((inv: any) => inv.status === 'Paid')
+      .reduce((sum: number, inv: any) => sum + (inv.total || 0), 0);
+    const projectsCount = projects.length;
+
     return {
-      client: client.toJSON(),
+      client: {
+        ...client.toJSON(),
+        totalSpent,
+        projectsCount,
+      },
       projects: normalize(projects),
       proposals: normalize(proposals),
       invoices: normalize(invoices),
@@ -90,7 +100,15 @@ export class ClientsController {
     @Body() dto: CreateClientDto,
   ) {
     const client = await this.clientsService.create(String(user._id), dto);
-    return { client: client.toJSON() };
+    // Include computed fields (0 for a brand-new client) so the frontend
+    // optimistic update can render the row without a separate GET call.
+    return {
+      client: {
+        ...client.toJSON(),
+        totalSpent: 0,
+        projectsCount: 0,
+      },
+    };
   }
 
   /** PUT /api/clients/:id */

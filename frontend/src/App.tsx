@@ -139,7 +139,7 @@ function AppContent() {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
     const [events, setEvents] = useState<CalendarEvent[]>([]);
-    const [, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     // New accounts go through onboarding before reaching the dashboard
     const [onboarded, setOnboarded] = useState<boolean>(() => {
@@ -171,6 +171,7 @@ function AppContent() {
             setEvents(calendarRes.events);
         } catch (err) {
             console.error('Error loading data from backend:', err);
+            throw err; // re-throw so callers can detect fetch failures
         } finally {
             setIsLoading(false);
         }
@@ -287,20 +288,36 @@ function AppContent() {
     };
 
     const handleCreateClient = async (data: Partial<Client>) => {
-        try { await api.createClient(data); await refreshAllData(); showToast('Client added successfully!', 'success'); }
-        catch (e) { showToast('Failed to add client', 'error'); }
+        try {
+            const { client: newClient } = await api.createClient(data);
+            // Optimistically prepend the new client so the row appears instantly.
+            // totalSpent and projectsCount are 0 for a brand-new client.
+            setClients(prev => [{ ...newClient, totalSpent: newClient.totalSpent ?? 0, projectsCount: newClient.projectsCount ?? 0 }, ...prev]);
+            showToast('Client added successfully!', 'success');
+            // Background refresh to pull in accurate aggregation data.
+            refreshAllData().catch(console.error);
+        } catch (e) { showToast('Failed to add client', 'error'); throw e; }
     };
 
     const handleUpdateClient = async (id: string, data: Partial<Client>) => {
-        try { await api.updateClient(id, data); await refreshAllData(); showToast('Client details updated!', 'success'); }
-        catch (e) { showToast('Failed to update client', 'error'); }
+        try {
+            const { client: updated } = await api.updateClient(id, data);
+            // Optimistically update the client in the list while keeping computed fields.
+            setClients(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c));
+            showToast('Client details updated!', 'success');
+            refreshAllData().catch(console.error);
+        } catch (e) { showToast('Failed to update client', 'error'); throw e; }
     };
 
     const handleDeleteClient = async (id: string) => {
         try {
-            await api.deleteClient(id); await refreshAllData(); showToast('Client removed', 'info');
+            await api.deleteClient(id);
+            // Optimistically remove from the list immediately.
+            setClients(prev => prev.filter(c => c.id !== id));
+            showToast('Client removed', 'info');
             if (currentPage === 'client-detail') handleNavigate('clients');
-        } catch (e) { showToast('Failed to delete client', 'error'); }
+            refreshAllData().catch(console.error);
+        } catch (e) { showToast('Failed to delete client', 'error'); throw e; }
     };
 
     const handleCreateProject = async (data: Partial<Project>) => {
@@ -398,16 +415,16 @@ function AppContent() {
                 <Route path="/cookies" element={<CookiePolicyPage />} />
                 <Route path="/demo" element={<DemoPage />} />
                 <Route element={user ? <Shell currentPage={currentPage} onNavigate={handleNavigate} user={user} onLogout={handleLogout} onOpenQuickCreate={handleQuickCreate} onResetSeed={handleResetDemo} searchData={{ clients, projects, proposals, invoices }} activities={metrics?.recentActivities || []}><Outlet /></Shell> : <Navigate to="/login" replace />}>
-                    <Route path="/dashboard" element={!onboarded ? <Navigate to="/onboarding" replace /> : <DashboardPage metrics={metrics ?? EMPTY_METRICS} user={user} invoices={invoices} projects={projects} proposals={proposals} onNavigate={handleNavigate} onOpenQuickCreate={handleQuickCreate} />} />
-                    <Route path="/clients" element={<ClientsPage clients={clients} onSelectClient={id => handleNavigate('client-detail', id)} onCreateClient={handleCreateClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} />} />
+                    <Route path="/dashboard" element={!onboarded ? <Navigate to="/onboarding" replace /> : <DashboardPage metrics={metrics ?? EMPTY_METRICS} user={user} invoices={invoices} projects={projects} proposals={proposals} onNavigate={handleNavigate} onOpenQuickCreate={handleQuickCreate} isLoading={isLoading && metrics === null} />} />
+                    <Route path="/clients" element={<ClientsPage clients={clients} isLoading={isLoading} onSelectClient={id => handleNavigate('client-detail', id)} onCreateClient={handleCreateClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} />} />
                     <Route path="/clients/:clientId" element={selectedClientId ? <ClientDetailPage clientId={selectedClientId} onBack={() => handleNavigate('clients')} onNavigate={handleNavigate} onUpdateClient={handleUpdateClient} /> : <Navigate to="/clients" replace />} />
                     <Route path="/projects" element={<ProjectsPage projects={projects} clients={clients} onCreateProject={handleCreateProject} onUpdateProject={handleUpdateProject} onUpdateStatus={handleUpdateProjectStatus} onDeleteProject={handleDeleteProject} />} />
-                    <Route path="/proposals" element={<ProposalsPage proposals={proposals} clients={clients} onNewProposal={() => handleNavigate('proposal-editor')} onOpenProposal={id => handleNavigate('proposal-editor', id)} onUpdateStatus={handleUpdateProposalStatus} onDeleteProposal={handleDeleteProposal} />} />
+                    <Route path="/proposals" element={<ProposalsPage proposals={proposals} clients={clients} onNewProposal={() => handleNavigate('proposal-editor')} onOpenProposal={id => handleNavigate('proposal-editor', id)} onUpdateStatus={handleUpdateProposalStatus} onDeleteProposal={handleDeleteProposal} onNavigateToClients={() => handleNavigate('clients')} />} />
                     <Route path="/proposals/new" element={<ProposalEditorPage proposalId={null} {...editorProps} />} />
                     <Route path="/proposals/:proposalId/edit" element={<ProposalEditorPage proposalId={selectedProposalId} {...editorProps} />} />
-                    <Route path="/invoices" element={<InvoicesPage invoices={invoices} clients={clients} projects={projects} onSelectInvoice={id => handleNavigate('invoice-detail', id)} onCreateInvoice={handleCreateInvoice} onUpdateStatus={handleUpdateInvoiceStatus} onDeleteInvoice={handleDeleteInvoice} />} />
+                    <Route path="/invoices" element={<InvoicesPage invoices={invoices} clients={clients} projects={projects} onSelectInvoice={id => handleNavigate('invoice-detail', id)} onCreateInvoice={handleCreateInvoice} onUpdateStatus={handleUpdateInvoiceStatus} onDeleteInvoice={handleDeleteInvoice} onNavigateToClients={() => handleNavigate('clients')} />} />
                     <Route path="/invoices/:invoiceId" element={selectedInvoiceId ? <InvoiceDetailPage invoiceId={selectedInvoiceId} clients={clients} onBack={() => handleNavigate('invoices')} onUpdateStatus={handleUpdateInvoiceStatus} /> : <Navigate to="/invoices" replace />} />
-                    <Route path="/analytics" element={<AnalyticsPage analytics={analytics ?? EMPTY_ANALYTICS} clients={clients} projects={projects} invoices={invoices} proposals={proposals} />} />
+                    <Route path="/analytics" element={<AnalyticsPage analytics={analytics ?? EMPTY_ANALYTICS} clients={clients} projects={projects} invoices={invoices} proposals={proposals} isLoading={isLoading && analytics === null} />} />
                     <Route path="/calendar" element={<CalendarPage events={events} clients={clients} onCreateEvent={handleCreateEvent} onDeleteEvent={handleDeleteEvent} />} />
                     <Route path="/settings" element={<SettingsPage user={user} onUpdateProfile={handleUpdateProfile} onResetDemo={handleResetDemo} />} />
                     <Route path="/ai-assistant" element={<AIAssistantPage user={user} clients={clients} projects={projects} proposals={proposals} invoices={invoices} analytics={analytics} onNavigate={handleNavigate} onCreateProposal={handleCreateProposal} />} />

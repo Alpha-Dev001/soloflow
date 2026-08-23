@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Plus,
@@ -70,6 +70,8 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Client | null>(null);
   const [formData, setFormData] = useState(emptyForm);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const filteredClients = clients.filter(c => {
     const matchesSearch =
@@ -79,6 +81,29 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
     const matchesFilter = statusFilter === 'All' || c.status === statusFilter;
     return matchesSearch && matchesFilter;
   });
+
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+  const paginatedClients = filteredClients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
 
   const openAddForm = () => {
     setEditingClient(null);
@@ -113,12 +138,18 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    if (editingClient) {
-      await onUpdateClient(editingClient.id, formData);
-    } else {
-      await onCreateClient(formData);
+    try {
+      if (editingClient) {
+        await onUpdateClient(editingClient.id, formData);
+      } else {
+        await onCreateClient(formData);
+      }
+      // Only navigate back to the list if the operation actually succeeded.
+      backToList();
+    } catch {
+      // Error toast is already shown by the handler in App.tsx.
+      // Stay on the form so the user can retry without losing their input.
     }
-    backToList();
   };
 
   const inputClass =
@@ -360,7 +391,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
         <TableSkeleton rows={5} />
       ) : (
         /* Clients Table Card */
-        <Card padding="none" className="overflow-hidden" style={{ borderColor: T.border }}>
+        <Card padding="none" style={{ borderColor: T.border }}>
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -384,7 +415,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  filteredClients.map(client => (
+                  paginatedClients.map(client => (
                     <tr
                       key={client.id}
                       onClick={() => onSelectClient(client.id)}
@@ -429,61 +460,63 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
 
                       {/* Action Dropdown */}
                       <td
-                        className="py-3 px-4 text-right relative"
+                        className="py-3 px-4 text-right"
                         onClick={e => e.stopPropagation()}
                       >
-                        <button
-                          onClick={() => setActiveMenuId(activeMenuId === client.id ? null : client.id)}
-                          className="p-1 rounded-md transition-colors cursor-pointer hover:bg-black/[0.04]"
-                          style={{ color: T.muted }}
-                          aria-label="Client actions"
-                        >
-                          <MoreVertical className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="relative inline-block">
+                          <button
+                            onClick={() => setActiveMenuId(activeMenuId === client.id ? null : client.id)}
+                            className="p-1 rounded-md transition-colors cursor-pointer hover:bg-black/[0.04]"
+                            style={{ color: T.muted }}
+                            aria-label="Client actions"
+                          >
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </button>
 
-                        {activeMenuId === client.id && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-40"
-                              onClick={() => setActiveMenuId(null)}
-                            />
-                            <div
-                              className="absolute right-4 mt-1 w-32 border rounded-xl shadow-lg p-1 z-50 animate-in fade-in zoom-in-95 duration-100"
-                              style={{ backgroundColor: T.surface, borderColor: T.border }}
-                            >
-                              <button
-                                onClick={() => {
-                                  setActiveMenuId(null);
-                                  onSelectClient(client.id);
-                                }}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left cursor-pointer font-medium transition-colors duration-150 hover:bg-[#F1EDE7]"
-                                style={{ color: T.body }}
+                          {activeMenuId === client.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setActiveMenuId(null)}
+                              />
+                              <div
+                                className="fixed right-4 w-32 border rounded-xl shadow-lg p-1 z-50 animate-in fade-in zoom-in-95 duration-100"
+                                style={{ backgroundColor: T.surface, borderColor: T.border, top: 'auto', bottom: '80px' }}
                               >
-                                <Eye className="w-3.5 h-3.5" style={{ color: T.accent }} />
-                                <span>Profile</span>
-                              </button>
-                              <button
-                                onClick={() => openEdit(client)}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left cursor-pointer font-medium transition-colors duration-150 hover:bg-[#F1EDE7]"
-                                style={{ color: T.body }}
-                              >
-                                <Edit2 className="w-3.5 h-3.5" style={{ color: T.accent }} />
-                                <span>Edit</span>
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  setActiveMenuId(null);
-                                  setPendingDelete(client);
-                                }}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left cursor-pointer font-medium transition-colors duration-150 hover:bg-[#FFF5F5]"
-                                style={{ color: '#C86450' }}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>Delete</span>
-                              </button>
-                            </div>
-                          </>
-                        )}
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    onSelectClient(client.id);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left cursor-pointer font-medium transition-colors duration-150 hover:bg-[#F1EDE7]"
+                                  style={{ color: T.body }}
+                                >
+                                  <Eye className="w-3.5 h-3.5" style={{ color: T.accent }} />
+                                  <span>Profile</span>
+                                </button>
+                                <button
+                                  onClick={() => openEdit(client)}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left cursor-pointer font-medium transition-colors duration-150 hover:bg-[#F1EDE7]"
+                                  style={{ color: T.body }}
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" style={{ color: T.accent }} />
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    setActiveMenuId(null);
+                                    setPendingDelete(client);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left cursor-pointer font-medium transition-colors duration-150 hover:bg-[#FFF5F5]"
+                                  style={{ color: '#C86450' }}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -499,7 +532,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
                 No clients found matching your search.
               </div>
             ) : (
-              filteredClients.map(client => (
+              paginatedClients.map(client => (
                 <div
                   key={client.id}
                   onClick={() => onSelectClient(client.id)}
@@ -567,30 +600,48 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
             style={{ backgroundColor: T.surfaceWarm, borderColor: T.border, color: T.muted }}
           >
             <span className="text-[11px]">
-              Showing 1–{filteredClients.length} of {clients.length} accounts
+              Showing {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredClients.length)} of {filteredClients.length} accounts
             </span>
             <div className="flex items-center gap-1">
               <Button
                 variant="secondary"
                 size="xs"
                 isIconOnly
-                disabled
+                disabled={currentPage === 1}
+                onClick={handlePrevPage}
                 aria-label="Previous page"
               >
                 <ChevronLeft className="w-3 h-3" />
               </Button>
-              <Button
-                variant="primary"
-                size="xs"
-                className="w-6 h-6 p-0 text-[11px]"
-              >
-                1
-              </Button>
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pageNum === currentPage ? 'primary' : 'secondary'}
+                    size="xs"
+                    className="w-6 h-6 p-0 text-[11px]"
+                    onClick={() => handlePageChange(pageNum)}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
               <Button
                 variant="secondary"
                 size="xs"
                 isIconOnly
-                disabled
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={handleNextPage}
                 aria-label="Next page"
               >
                 <ChevronRight className="w-3 h-3" />

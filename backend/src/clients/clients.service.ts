@@ -15,7 +15,7 @@ export class ClientsService {
   constructor(
     @InjectModel(Client.name) private readonly clientModel: Model<ClientDocument>,
     private readonly activitiesService: ActivitiesService,
-  ) {}
+  ) { }
 
   /**
    * Returns all clients for the user, enriched with computed
@@ -79,7 +79,25 @@ export class ClientsService {
             id: { $toString: '$_id' },
           },
         },
-        { $unset: ['paidInvoices', 'projectsAgg', '_id', '__v'] },
+        {
+          $project: {
+            id: 1,
+            name: 1,
+            company: 1,
+            email: 1,
+            phone: 1,
+            website: 1,
+            address: 1,
+            status: 1,
+            tier: 1,
+            country: 1,
+            notes: 1,
+            totalSpent: 1,
+            projectsCount: 1,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
       ])
       .exec();
 

@@ -192,11 +192,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           className="max-w-6xl mx-auto px-6 transition-all duration-300 ease-out"
           style={{
             borderRadius: scrolled ? '16px' : '16px',
-            backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.82)' : 'transparent',
-            backdropFilter: scrolled ? 'blur(18px) saturate(170%)' : 'none',
-            WebkitBackdropFilter: scrolled ? 'blur(18px) saturate(170%)' : 'none',
-            border: `1px solid ${scrolled ? T.border : 'transparent'}`,
-            boxShadow: scrolled ? '0 6px 24px -8px rgba(74,59,50,0.14), 0 1px 4px rgba(74,59,50,0.05)' : 'none',
+            backgroundColor: scrolled ? 'rgba(230, 225, 218, 0.55)' : 'transparent',
+            backdropFilter: scrolled ? 'blur(16px) saturate(160%)' : 'none',
+            WebkitBackdropFilter: scrolled ? 'blur(16px) saturate(160%)' : 'none',
+            border: `1px solid ${scrolled ? 'rgba(255,255,255,0.40)' : 'transparent'}`,
+            boxShadow: scrolled ? '0 4px 24px -6px rgba(74,59,50,0.12), 0 1px 0 rgba(255,255,255,0.55) inset' : 'none',
             height: '64px',
           }}
         >
@@ -338,7 +338,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="relative flex flex-col sm:flex-row items-center justify-center gap-3 auth-fade-item" style={{ animationDelay: '0.3s' }}>
             <span
-              className="relative inline-flex rounded-xl transition-transform duration-200 hover:-translate-y-0.5"
+              className="relative inline-flex rounded-xl"
               style={{ boxShadow: '0 12px 32px -6px rgba(147,122,98,0.55), 0 4px 12px -2px rgba(147,122,98,0.35)' }}
             >
               <Button
@@ -398,7 +398,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <Reveal stagger className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Starter — card */}
           <div
-            className="rounded-2xl border p-8 flex flex-col relative overflow-hidden texture-light transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_44px_-14px_rgba(74,59,50,0.18)]"
+            className="pricing-card-light rounded-2xl border p-8 flex flex-col relative overflow-hidden texture-light transition-colors duration-200"
             style={{ backgroundColor: T.surface, borderColor: T.border, boxShadow: '0 1px 2px rgba(74,59,50,0.03)' }}
           >
             <div className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: T.accent }}>Starter</div>
@@ -426,7 +426,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           {/* Pro — dark card */}
           <div
-            className="rounded-2xl border p-8 flex flex-col relative overflow-hidden texture-linen-dark transition-all duration-300 hover:-translate-y-1"
+            className="pricing-card-dark rounded-2xl border p-8 flex flex-col relative overflow-hidden texture-linen-dark transition-colors duration-200"
             style={{
               backgroundColor: T.dark,
               backgroundImage: [
@@ -590,6 +590,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         }
         .nav-link:hover::after {
           transform: scaleX(1);
+        }
+        .pricing-card-light:hover {
+          background-color: #F5F2EE !important;
+          border-color: ${T.borderStrong} !important;
+        }
+        .pricing-card-dark:hover {
+          background-color: #4E3F32 !important;
         }
       `}</style>
     </div>

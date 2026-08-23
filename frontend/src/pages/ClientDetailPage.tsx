@@ -192,10 +192,10 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({
             <Card padding="md" className="space-y-1">
               <div className="text-[10px] text-[#8C8278] uppercase font-medium">Total Lifetime Spend</div>
               <div className="text-xl font-semibold text-[#1A1918] tracking-tight">
-                ${client.totalSpent.toLocaleString()}
+                ${(client.totalSpent || 0).toLocaleString()}
               </div>
               <p className="text-[10px] text-[#8C8278]">
-                Across {client.projectsCount} project engagements
+                Across {client.projectsCount || 0} project engagements
               </p>
             </Card>
           </div>
@@ -229,11 +229,11 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({
                     >
                       <div>
                         <div className="font-medium text-xs text-[#1A1918]">{p.title}</div>
-                        <div className="text-[10px] text-[#8C8278]">Due {p.deadline}</div>
+                        <div className="text-[10px] text-[#8C8278]">Due {String(p.deadline || 'TBD')}</div>
                       </div>
                       <div className="flex items-center justify-between sm:justify-end gap-2">
                         <span className="text-xs font-semibold text-[#1A1918]">
-                          ${p.budget.toLocaleString()}
+                          ${(p.budget || 0).toLocaleString()}
                         </span>
                         <Badge variant={p.status.toLowerCase() as any} size="sm">
                           {p.status}
@@ -301,10 +301,10 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({
               <div key={p.id} className="p-3 rounded-lg border border-[#EDE8E1] bg-[#F4F0EA] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h4 className="font-medium text-xs text-[#1A1918]">{p.title}</h4>
-                  <p className="text-[11px] text-[#8C8278] mt-0.5">{p.description}</p>
+                  <p className="text-[11px] text-[#8C8278] mt-0.5">{p.description || ''}</p>
                 </div>
                 <div className="flex items-center justify-between sm:justify-end gap-2">
-                  <span className="text-xs font-semibold text-[#1A1918]">${p.budget.toLocaleString()}</span>
+                  <span className="text-xs font-semibold text-[#1A1918]">${(p.budget || 0).toLocaleString()}</span>
                   <Badge size="sm" variant={p.status.toLowerCase() as any}>{p.status}</Badge>
                 </div>
               </div>
@@ -348,7 +348,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({
                   <p className="text-[11px] text-[#8C8278] mt-0.5">{prop.timeline}</p>
                 </div>
                 <div className="flex items-center justify-between sm:justify-end gap-2">
-                  <span className="text-xs font-semibold text-[#1A1918]">${prop.amount.toLocaleString()}</span>
+                  <span className="text-xs font-semibold text-[#1A1918]">${(prop.amount || 0).toLocaleString()}</span>
                   <Badge size="sm" variant={prop.status.toLowerCase() as any}>{prop.status}</Badge>
                 </div>
               </div>

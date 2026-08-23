@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Plus,
   Search,
@@ -7,11 +7,14 @@ import {
   Calendar as CalendarIcon,
   Clock,
   MoreVertical,
+  ChevronLeft,
   ChevronRight,
   ArrowRight,
   CheckCircle2,
   Trash2,
-  Edit2
+  Edit2,
+  FolderKanban,
+  Lightbulb
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -43,6 +46,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Project | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Form states
   const [formData, setFormData] = useState({
@@ -59,6 +64,29 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
     p.title.toLowerCase().includes(search.toLowerCase()) ||
     p.clientName.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+  const paginatedProjects = filteredProjects.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const todoProjects = filteredProjects.filter(p => p.status === 'To Do');
   const inProgressProjects = filteredProjects.filter(p => p.status === 'In Progress');
@@ -159,199 +187,265 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
 
       {/* Board View */}
       {viewMode === 'board' ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Column 1: To Do */}
-          <div className="flex flex-col">
-            <div className="flex items-center justify-between pb-2 px-1">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#FF9500]" />
-                <h3 className="font-semibold text-xs text-[#1A1918]">To Do</h3>
-                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded-full bg-black/[0.04] text-[#8C8278]">
-                  {todoProjects.length}
-                </span>
+        projects.length === 0 ? (
+          /* ── Welcome state — no projects yet ── */
+          <Card className="p-10 sm:p-14">
+            <div className="max-w-lg mx-auto text-center">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+                style={{ backgroundColor: '#F8F7F5', border: '1px solid #E0D9CF' }}
+              >
+                <FolderKanban className="w-6 h-6" style={{ color: '#82694E' }} />
               </div>
-              <button
-                onClick={() => openCreateModal('To Do')}
-                className="p-1 text-[#8C8278] hover:text-[#1A1918] hover:bg-black/[0.04] rounded-md transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
+              <h2 className="text-lg font-bold tracking-tight mb-2" style={{ color: '#1A1918' }}>
+                Start managing your freelance work
+              </h2>
+              <p className="text-sm leading-relaxed mb-7" style={{ color: '#6B6158' }}>
+                Projects help you organise client deliverables, track progress across a Kanban board, set budgets, and never miss a deadline. Create your first project to get going.
+              </p>
 
-            <div className="space-y-2.5 flex-1">
-              {todoProjects.map(proj => (
-                <Card
-                  key={proj.id}
-                  padding="sm"
-                  className="hover:border-[#E0D9CF] transition-all group"
+              <div className="flex justify-center mb-8">
+                <Button
+                  onClick={() => openCreateModal('To Do')}
+                  variant="primary"
+                  size="md"
+                  icon={<Plus className="w-4 h-4" />}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Avatar name={proj.clientName} size="sm" />
-                      <span className="text-[11px] text-[#8C8278] font-medium">{proj.clientName}</span>
-                    </div>
-                    {getPriorityBadge(proj.priority)}
-                  </div>
-
-                  <h4 className="font-semibold text-xs text-[#1A1918] group-hover:text-[#0071E3] transition-colors mb-1">
-                    {proj.title}
-                  </h4>
-                  {proj.description && (
-                    <p className="text-[11px] text-[#8C8278] line-clamp-2 mb-2">
-                      {proj.description}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between pt-2 border-t border-[#F4F0EA] text-xs">
-                    <div className="flex items-center gap-1 text-[11px] text-[#8C8278]">
-                      <CalendarIcon className="w-3 h-3" />
-                      <span>{proj.deadline}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-[11px] text-[#1A1918]">${proj.budget.toLocaleString()}</span>
-                      <button
-                        onClick={() => onUpdateStatus(proj.id, 'In Progress')}
-                        title="Move to In Progress"
-                        className="p-1 text-[#8C8278] hover:text-[#0071E3] hover:bg-black/[0.04] rounded-md transition-colors cursor-pointer"
-                      >
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-
-              <button
-                onClick={() => openCreateModal('To Do')}
-                className="w-full py-2 px-3 border border-dashed border-[#EDE8E1] hover:border-[#1A1918] hover:bg-white rounded-xl text-xs font-medium text-[#8C8278] hover:text-[#1A1918] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="w-3 h-3" />
-                <span>Add Project</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Column 2: In Progress */}
-          <div className="flex flex-col">
-            <div className="flex items-center justify-between pb-2 px-1">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#0071E3]" />
-                <h3 className="font-semibold text-xs text-[#1A1918]">In Progress</h3>
-                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded-full bg-black/[0.04] text-[#8C8278]">
-                  {inProgressProjects.length}
-                </span>
+                  Create first project
+                </Button>
               </div>
-              <button
-                onClick={() => openCreateModal('In Progress')}
-                className="p-1 text-[#8C8278] hover:text-[#1A1918] hover:bg-black/[0.04] rounded-md transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
 
-            <div className="space-y-2.5 flex-1">
-              {inProgressProjects.map(proj => (
-                <Card
-                  key={proj.id}
-                  padding="sm"
-                  className="hover:border-[#E0D9CF] transition-all group"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Avatar name={proj.clientName} size="sm" />
-                      <span className="text-[11px] text-[#8C8278] font-medium">{proj.clientName}</span>
-                    </div>
-                    {getPriorityBadge(proj.priority)}
-                  </div>
-
-                  <h4 className="font-semibold text-xs text-[#1A1918] group-hover:text-[#0071E3] transition-colors mb-1">
-                    {proj.title}
-                  </h4>
-                  {proj.description && (
-                    <p className="text-[11px] text-[#8C8278] line-clamp-2 mb-2">
-                      {proj.description}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between pt-2 border-t border-[#F4F0EA] text-xs">
-                    <div className="flex items-center gap-1 text-[11px] text-[#8C8278]">
-                      <CalendarIcon className="w-3 h-3" />
-                      <span>{proj.deadline}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-[11px] text-[#1A1918]">${proj.budget.toLocaleString()}</span>
-                      <button
-                        onClick={() => onUpdateStatus(proj.id, 'Completed')}
-                        title="Mark as Completed"
-                        className="p-1 text-[#8C8278] hover:text-[#248A3D] hover:bg-[#34C759]/10 rounded-md transition-colors cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-
-              <button
-                onClick={() => openCreateModal('In Progress')}
-                className="w-full py-2 px-3 border border-dashed border-[#EDE8E1] hover:border-[#1A1918] hover:bg-white rounded-xl text-xs font-medium text-[#8C8278] hover:text-[#1A1918] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Plus className="w-3 h-3" />
-                <span>Add Project</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Column 3: Completed */}
-          <div className="flex flex-col">
-            <div className="flex items-center justify-between pb-2 px-1">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#34C759]" />
-                <h3 className="font-semibold text-xs text-[#1A1918]">Completed</h3>
-                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded-full bg-black/[0.04] text-[#8C8278]">
-                  {completedProjects.length}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 flex-1">
-              {completedProjects.map(proj => (
-                <Card
-                  key={proj.id}
-                  padding="sm"
-                  className="bg-white/80 hover:border-[#E0D9CF] transition-all group"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Avatar name={proj.clientName} size="sm" />
-                      <span className="text-[11px] text-[#8C8278] font-medium">{proj.clientName}</span>
-                    </div>
-                    <span className="text-[10px] font-medium px-1.5 py-0.2 rounded-md bg-[#34C759]/10 text-[#248A3D] border border-[#34C759]/20">
-                      Completed
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+                {[
+                  {
+                    icon: <LayoutGrid className="w-4 h-4" />,
+                    label: 'Kanban board',
+                    body: 'Drag projects across To Do, In Progress, and Completed columns.'
+                  },
+                  {
+                    icon: <CalendarIcon className="w-4 h-4" />,
+                    label: 'Deadline tracking',
+                    body: 'Set due dates and surface overdue work on your dashboard.'
+                  },
+                  {
+                    icon: <Lightbulb className="w-4 h-4" />,
+                    label: 'Budget & priority',
+                    body: 'Assign budgets and priorities so you always focus on what matters.'
+                  }
+                ].map(item => (
+                  <div
+                    key={item.label}
+                    className="p-3.5 rounded-xl border text-left"
+                    style={{ backgroundColor: '#F8F7F5', borderColor: '#E0D9CF' }}
+                  >
+                    <span
+                      className="w-7 h-7 rounded-lg flex items-center justify-center mb-2"
+                      style={{ backgroundColor: '#FFFFFF', border: '1px solid #EDE8E1', color: '#82694E' }}
+                    >
+                      {item.icon}
                     </span>
+                    <p className="text-[12px] font-semibold mb-0.5" style={{ color: '#1A1918' }}>{item.label}</p>
+                    <p className="text-[11px] leading-relaxed" style={{ color: '#8C8278' }}>{item.body}</p>
                   </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Column 1: To Do */}
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between pb-2 px-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#FF9500]" />
+                  <h3 className="font-semibold text-xs text-[#1A1918]">To Do</h3>
+                  <span className="text-[10px] font-medium px-1.5 py-0.2 rounded-full bg-black/[0.04] text-[#8C8278]">
+                    {todoProjects.length}
+                  </span>
+                </div>
+                <button
+                  onClick={() => openCreateModal('To Do')}
+                  className="p-1 text-[#8C8278] hover:text-[#1A1918] hover:bg-black/[0.04] rounded-md transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
 
-                  <h4 className="font-semibold text-xs text-[#1A1918] mb-1">
-                    {proj.title}
-                  </h4>
-                  {proj.description && (
-                    <p className="text-[11px] text-[#8C8278] line-clamp-2 mb-2">
-                      {proj.description}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between pt-2 border-t border-[#F4F0EA] text-xs">
-                    <div className="flex items-center gap-1 text-[11px] text-[#8C8278]">
-                      <CalendarIcon className="w-3 h-3" />
-                      <span>{proj.deadline}</span>
+              <div className="space-y-2.5 flex-1">
+                {todoProjects.map(proj => (
+                  <Card
+                    key={proj.id}
+                    padding="sm"
+                    className="hover:border-[#E0D9CF] transition-all group"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Avatar name={proj.clientName} size="sm" />
+                        <span className="text-[11px] text-[#8C8278] font-medium">{proj.clientName}</span>
+                      </div>
+                      {getPriorityBadge(proj.priority)}
                     </div>
-                    <span className="font-semibold text-[11px] text-[#1A1918]">${proj.budget.toLocaleString()}</span>
-                  </div>
-                </Card>
-              ))}
+
+                    <h4 className="font-semibold text-xs text-[#1A1918] group-hover:text-[#0071E3] transition-colors mb-1">
+                      {proj.title}
+                    </h4>
+                    {proj.description && (
+                      <p className="text-[11px] text-[#8C8278] line-clamp-2 mb-2">
+                        {proj.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-[#F4F0EA] text-xs">
+                      <div className="flex items-center gap-1 text-[11px] text-[#8C8278]">
+                        <CalendarIcon className="w-3 h-3" />
+                        <span>{proj.deadline}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-[11px] text-[#1A1918]">${proj.budget.toLocaleString()}</span>
+                        <button
+                          onClick={() => onUpdateStatus(proj.id, 'In Progress')}
+                          title="Move to In Progress"
+                          className="p-1 text-[#8C8278] hover:text-[#0071E3] hover:bg-black/[0.04] rounded-md transition-colors cursor-pointer"
+                        >
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+
+                <button
+                  onClick={() => openCreateModal('To Do')}
+                  className="w-full py-2 px-3 border border-dashed border-[#EDE8E1] hover:border-[#1A1918] hover:bg-white rounded-xl text-xs font-medium text-[#8C8278] hover:text-[#1A1918] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Add Project</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Column 2: In Progress */}
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between pb-2 px-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#0071E3]" />
+                  <h3 className="font-semibold text-xs text-[#1A1918]">In Progress</h3>
+                  <span className="text-[10px] font-medium px-1.5 py-0.2 rounded-full bg-black/[0.04] text-[#8C8278]">
+                    {inProgressProjects.length}
+                  </span>
+                </div>
+                <button
+                  onClick={() => openCreateModal('In Progress')}
+                  className="p-1 text-[#8C8278] hover:text-[#1A1918] hover:bg-black/[0.04] rounded-md transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="space-y-2.5 flex-1">
+                {inProgressProjects.map(proj => (
+                  <Card
+                    key={proj.id}
+                    padding="sm"
+                    className="hover:border-[#E0D9CF] transition-all group"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Avatar name={proj.clientName} size="sm" />
+                        <span className="text-[11px] text-[#8C8278] font-medium">{proj.clientName}</span>
+                      </div>
+                      {getPriorityBadge(proj.priority)}
+                    </div>
+
+                    <h4 className="font-semibold text-xs text-[#1A1918] group-hover:text-[#0071E3] transition-colors mb-1">
+                      {proj.title}
+                    </h4>
+                    {proj.description && (
+                      <p className="text-[11px] text-[#8C8278] line-clamp-2 mb-2">
+                        {proj.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-[#F4F0EA] text-xs">
+                      <div className="flex items-center gap-1 text-[11px] text-[#8C8278]">
+                        <CalendarIcon className="w-3 h-3" />
+                        <span>{proj.deadline}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-[11px] text-[#1A1918]">${proj.budget.toLocaleString()}</span>
+                        <button
+                          onClick={() => onUpdateStatus(proj.id, 'Completed')}
+                          title="Mark as Completed"
+                          className="p-1 text-[#8C8278] hover:text-[#248A3D] hover:bg-[#34C759]/10 rounded-md transition-colors cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+
+                <button
+                  onClick={() => openCreateModal('In Progress')}
+                  className="w-full py-2 px-3 border border-dashed border-[#EDE8E1] hover:border-[#1A1918] hover:bg-white rounded-xl text-xs font-medium text-[#8C8278] hover:text-[#1A1918] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Add Project</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Column 3: Completed */}
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between pb-2 px-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#34C759]" />
+                  <h3 className="font-semibold text-xs text-[#1A1918]">Completed</h3>
+                  <span className="text-[10px] font-medium px-1.5 py-0.2 rounded-full bg-black/[0.04] text-[#8C8278]">
+                    {completedProjects.length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 flex-1">
+                {completedProjects.map(proj => (
+                  <Card
+                    key={proj.id}
+                    padding="sm"
+                    className="bg-white/80 hover:border-[#E0D9CF] transition-all group"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Avatar name={proj.clientName} size="sm" />
+                        <span className="text-[11px] text-[#8C8278] font-medium">{proj.clientName}</span>
+                      </div>
+                      <span className="text-[10px] font-medium px-1.5 py-0.2 rounded-md bg-[#34C759]/10 text-[#248A3D] border border-[#34C759]/20">
+                        Completed
+                      </span>
+                    </div>
+
+                    <h4 className="font-semibold text-xs text-[#1A1918] mb-1">
+                      {proj.title}
+                    </h4>
+                    {proj.description && (
+                      <p className="text-[11px] text-[#8C8278] line-clamp-2 mb-2">
+                        {proj.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-[#F4F0EA] text-xs">
+                      <div className="flex items-center gap-1 text-[11px] text-[#8C8278]">
+                        <CalendarIcon className="w-3 h-3" />
+                        <span>{proj.deadline}</span>
+                      </div>
+                      <span className="font-semibold text-[11px] text-[#1A1918]">${proj.budget.toLocaleString()}</span>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )
       ) : (
         /* List View */
         <Card padding="none" className="overflow-hidden border border-[#EDE8E1]">
@@ -369,7 +463,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F4F0EA]">
-                {filteredProjects.map(proj => (
+                {paginatedProjects.map(proj => (
                   <tr key={proj.id} className="hover:bg-[#F4F0EA] transition-colors">
                     <td className="py-3 px-4 font-medium text-[#1A1918]">{proj.title}</td>
                     <td className="py-3 px-3 text-[#6E6E73]">{proj.clientName}</td>
@@ -382,20 +476,52 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                       <Badge size="sm" variant={proj.status.toLowerCase() as any}>{proj.status}</Badge>
                     </td>
                     <td className="py-3 px-4 text-right">
-                       <button
-                         onClick={() => setPendingDelete(proj)}
-                         className="p-1 text-[#8C8278] hover:text-[#FF3B30] rounded-md hover:bg-[#FF3B30]/10 transition-colors"
-                       >
-                         <Trash2 className="w-3.5 h-3.5" />
-                       </button>
-                     </td>
-                   </tr>
-                 ))}
-               </tbody>
-             </table>
-           </div>
-         </Card>
-       )}
+                      <button
+                        onClick={() => setPendingDelete(proj)}
+                        className="p-1 text-[#8C8278] hover:text-[#FF3B30] rounded-md hover:bg-[#FF3B30]/10 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="px-4 py-2.5 bg-[#F4F0EA] border-t border-[#EDE8E1] flex items-center justify-between text-xs text-[#8C8278]">
+            <span className="text-[11px]">Showing {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredProjects.length)} of {filteredProjects.length} projects</span>
+            <div className="flex items-center gap-1">
+              <Button variant="secondary" size="xs" isIconOnly disabled={currentPage === 1} onClick={handlePrevPage} aria-label="Previous page"><ChevronLeft className="w-3 h-3" /></Button>
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pageNum === currentPage ? 'primary' : 'secondary'}
+                    size="xs"
+                    className="w-6 h-6 p-0 text-[11px]"
+                    onClick={() => handlePageChange(pageNum)}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+              <Button variant="secondary" size="xs" isIconOnly disabled={currentPage === totalPages || totalPages === 0} onClick={handleNextPage} aria-label="Next page"><ChevronRight className="w-3 h-3" /></Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Delete Project Confirmation */}
       <ConfirmDialog
@@ -544,6 +670,6 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
           </div>
         </form>
       </Modal>
-    </div>
+    </div >
   );
 };

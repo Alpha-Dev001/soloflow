@@ -99,7 +99,7 @@ export class DashboardService {
             id: { $toString: '$_id' },
             name: { $ifNull: ['$client.name', 'Unknown'] },
             totalSpent: 1,
-            projectsCount: 0,
+            projectsCount: { $ifNull: ['$projectsCount', 0] },
           },
         },
       ]),
