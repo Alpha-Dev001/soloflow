@@ -9,7 +9,9 @@ import {
   Eye,
   Trash2,
   Receipt,
-  Calendar
+  Calendar,
+  Users,
+  ArrowRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Card } from '../components/ui/Card';
@@ -31,6 +33,7 @@ interface InvoicesPageProps {
   onCreateInvoice: (inv: Partial<Invoice>) => Promise<void>;
   onUpdateStatus: (id: string, status: string) => Promise<void>;
   onDeleteInvoice: (id: string) => Promise<void>;
+  onNavigateToClients: () => void;
 }
 
 export const InvoicesPage: React.FC<InvoicesPageProps> = ({
@@ -41,7 +44,8 @@ export const InvoicesPage: React.FC<InvoicesPageProps> = ({
   onSelectInvoice,
   onCreateInvoice,
   onUpdateStatus,
-  onDeleteInvoice
+  onDeleteInvoice,
+  onNavigateToClients
 }) => {
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
@@ -157,286 +161,330 @@ export const InvoicesPage: React.FC<InvoicesPageProps> = ({
         </Button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-        <div className="relative w-full sm:w-72">
-          <Search className="w-3.5 h-3.5 text-[#8C8278] absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search invoices..."
-            className="w-full bg-white text-xs text-[#1A1918] placeholder-[#8C8278] pl-8.5 pr-3 py-1.5 rounded-lg border border-[#EDE8E1] focus:outline-none focus:border-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/15 transition-all"
-          />
-        </div>
-
-        {/* Apple Segmented Control */}
-        <div className="segmented-control self-start sm:self-auto overflow-x-auto max-w-full">
-          {['All', 'Paid', 'Pending', 'Overdue', 'Sent', 'Draft'].map(st => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-2.5 py-1 text-[11px] rounded-md transition-all cursor-pointer whitespace-nowrap ${statusFilter === st ? 'bg-white text-[#4A3F35] font-medium shadow-2xs' : 'text-[#7A6548] hover:text-[#5C4D35]'
-                }`}
+      {/* No-client gate — must add a client before invoicing */}
+      {clients.length === 0 ? (
+        <Card className="p-10 sm:p-14">
+          <div className="max-w-md mx-auto text-center">
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+              style={{ backgroundColor: '#F8F7F5', border: '1px solid #E0D9CF' }}
             >
-              {st}
+              <Users className="w-6 h-6" style={{ color: '#B39C82' }} />
+            </div>
+            <h2 className="text-lg font-bold tracking-tight mb-2" style={{ color: '#1A1918' }}>
+              Add a client first
+            </h2>
+            <p className="text-sm leading-relaxed mb-6" style={{ color: '#6B6158' }}>
+              Every invoice needs a client. Add your first client and you'll be able to issue invoices, track payments, and manage your billing — all in one place.
+            </p>
+            <button
+              onClick={onNavigateToClients}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 cursor-pointer hover:opacity-90 mb-8"
+              style={{ backgroundColor: '#1A1918', color: '#F8F4EE' }}
+            >
+              <Users className="w-4 h-4" />
+              Go to Clients
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Loading Skeleton State */}
-      {isLoading ? (
-        <TableSkeleton rows={5} />
-      ) : (
-        /* Invoices Table Card */
-        <Card padding="none" className="overflow-hidden border border-[#EDE8E1]">
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#F4F0EA] border-b border-[#EDE8E1] text-[11px] font-medium text-[#8C8278] select-none">
-                <tr>
-                  <th className="py-2.5 px-4 font-medium">Invoice #</th>
-                  <th className="py-2.5 px-3 font-medium">Client</th>
-                  <th className="py-2.5 px-3 font-medium">Due Date</th>
-                  <th className="py-2.5 px-3 font-medium">Status</th>
-                  <th className="py-2.5 px-3 font-medium">Amount</th>
-                  <th className="py-2.5 px-4 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F4F0EA]">
-                {filteredInvoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-10 text-center text-xs text-[#8C8278]">
-                      No invoices found. Click "New Invoice" to issue one.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredInvoices.map(inv => (
-                    <tr
-                      key={inv.id}
-                      onClick={() => onSelectInvoice(inv.id)}
-                      className="hover:bg-[#F4F0EA] transition-colors cursor-pointer group"
-                    >
-                      {/* Invoice Number */}
-                      <td className="py-3 px-4 font-mono font-medium text-xs text-[#1A1918] group-hover:text-[#0071E3]">
-                        <div className="flex items-center gap-1.5">
-                          <Receipt className="w-3.5 h-3.5 text-[#8C8278]" />
-                          <span>{inv.invoiceNumber}</span>
-                        </div>
-                      </td>
-
-                      {/* Client Name + Avatar */}
-                      <td className="py-3 px-3">
-                        <div className="flex items-center gap-2">
-                          <Avatar name={inv.clientName} size="sm" />
-                          <span className="font-medium text-[#1A1918]">{inv.clientName}</span>
-                        </div>
-                      </td>
-
-                      {/* Due Date */}
-                      <td className="py-3 px-3 text-[11px] text-[#8C8278]">
-                        {inv.dueDate}
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3 px-3">
-                        <Badge size="sm" variant={inv.status.toLowerCase() as any}>
-                          {inv.status}
-                        </Badge>
-                      </td>
-
-                      {/* Amount */}
-                      <td className="py-3 px-3 font-medium text-[#1A1918]">
-                        ${inv.total.toFixed(2)}
-                      </td>
-
-                      {/* Actions dropdown */}
-                      <td
-                        className="py-3 px-4 text-right relative"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <div className="flex items-center justify-end gap-1">
-                          {inv.status !== 'Paid' && (
-                            <Button
-                              variant="secondary"
-                              size="xs"
-                              onClick={() => handleMarkPaid(inv)}
-                              className="text-[#248A3D] border-[#34C759]/30 bg-[#34C759]/10 hover:bg-[#34C759]/20 text-[10px]"
-                            >
-                              Paid
-                            </Button>
-                          )}
-
-                          <button
-                            onClick={() => setActiveMenuId(activeMenuId === inv.id ? null : inv.id)}
-                            className="p-1 text-[#8C8278] hover:text-[#1A1918] hover:bg-black/[0.04] rounded-md transition-colors cursor-pointer"
-                            aria-label="Invoice actions"
-                          >
-                            <MoreVertical className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        {activeMenuId === inv.id && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-40"
-                              onClick={() => setActiveMenuId(null)}
-                            />
-                            <div className="absolute right-4 mt-1 w-36 bg-white border border-[#EDE8E1] rounded-xl shadow-lg p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-                              <button
-                                onClick={() => {
-                                  setActiveMenuId(null);
-                                  onSelectInvoice(inv.id);
-                                }}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#1A1918] hover:bg-[#F4F0EA] rounded-lg text-left cursor-pointer font-medium"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-[#8C8278]" />
-                                <span>View</span>
-                              </button>
-
-                              {inv.status !== 'Paid' ? (
-                                <button
-                                  onClick={() => {
-                                    setActiveMenuId(null);
-                                    handleMarkPaid(inv);
-                                  }}
-                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#248A3D] hover:bg-[#34C759]/10 rounded-lg text-left cursor-pointer font-medium"
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  <span>Mark Paid</span>
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={async () => {
-                                    setActiveMenuId(null);
-                                    await onUpdateStatus(inv.id, 'Pending');
-                                    showToast(`Invoice ${inv.invoiceNumber} set to Pending`, 'info');
-                                  }}
-                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#C97100] hover:bg-[#FF9500]/10 rounded-lg text-left cursor-pointer font-medium"
-                                >
-                                  <span>Set Pending</span>
-                                </button>
-                              )}
-
-                              <button
-                                onClick={() => {
-                                  setActiveMenuId(null);
-                                  setPendingDelete(inv);
-                                }}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#FF3B30] hover:bg-[#FF3B30]/10 rounded-lg text-left cursor-pointer font-medium"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-[#FF3B30]" />
-                                <span>Delete</span>
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile & Tablet Stacked Card View */}
-          <div className="md:hidden divide-y divide-[#F4F0EA]">
-            {filteredInvoices.length === 0 ? (
-              <div className="py-8 px-4 text-center text-xs text-[#8C8278]">
-                No invoices found. Click "New Invoice" to issue one.
-              </div>
-            ) : (
-              filteredInvoices.map(inv => (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+              {[
+                { label: 'Issue invoices', body: 'Bill clients with itemised line items and due dates.' },
+                { label: 'Track payments', body: 'See paid, pending, and overdue at a glance.' },
+                { label: 'Collect faster', body: 'Follow up on overdue invoices from the dashboard.' }
+              ].map(item => (
                 <div
-                  key={inv.id}
-                  onClick={() => onSelectInvoice(inv.id)}
-                  className="p-3.5 hover:bg-[#F4F0EA] transition-colors cursor-pointer space-y-2.5"
+                  key={item.label}
+                  className="p-3.5 rounded-xl border"
+                  style={{ backgroundColor: '#F8F7F5', borderColor: '#E0D9CF' }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Receipt className="w-3.5 h-3.5 text-[#8C8278]" />
-                      <span className="font-mono font-medium text-xs text-[#1A1918]">{inv.invoiceNumber}</span>
-                    </div>
-                    <Badge size="sm" variant={inv.status.toLowerCase() as any}>
-                      {inv.status}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Avatar name={inv.clientName} size="sm" />
-                      <span className="font-medium text-xs text-[#1A1918] truncate">{inv.clientName}</span>
-                    </div>
-                    <span className="font-semibold text-xs text-[#1A1918]">${inv.total.toFixed(2)}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] text-[#8C8278] pt-0.5">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-[#8C8278]" />
-                      <span>Due {inv.dueDate}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                      {inv.status !== 'Paid' && (
-                        <Button
-                          variant="secondary"
-                          size="xs"
-                          onClick={() => handleMarkPaid(inv)}
-                          className="text-[#248A3D] border-[#34C759]/30 bg-[#34C759]/10 hover:bg-[#34C759]/20 text-[10px]"
-                        >
-                          Paid
-                        </Button>
-                      )}
-                      <Button
-                        variant="primary"
-                        size="xs"
-                        onClick={() => onSelectInvoice(inv.id)}
-                      >
-                        View
-                      </Button>
-                    </div>
-                  </div>
+                  <p className="text-[12px] font-semibold mb-1" style={{ color: '#1A1918' }}>{item.label}</p>
+                  <p className="text-[11px] leading-relaxed" style={{ color: '#8C8278' }}>{item.body}</p>
                 </div>
-              ))
-            )}
-          </div>
-
-          {/* Pagination Footer */}
-          <div className="px-4 py-2.5 bg-[#F4F0EA] border-t border-[#EDE8E1] flex items-center justify-between text-xs text-[#8C8278]">
-            <span className="text-[11px]">
-              Showing 1–{filteredInvoices.length} of {invoices.length} invoices
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="secondary"
-                size="xs"
-                isIconOnly
-                disabled
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="w-3 h-3" />
-              </Button>
-              <Button
-                variant="primary"
-                size="xs"
-                className="w-6 h-6 p-0 text-[11px]"
-              >
-                1
-              </Button>
-              <Button
-                variant="secondary"
-                size="xs"
-                isIconOnly
-                disabled
-                aria-label="Next page"
-              >
-                <ChevronRight className="w-3 h-3" />
-              </Button>
+              ))}
             </div>
           </div>
         </Card>
-      )}
+      ) : (<>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div className="relative w-full sm:w-72">
+            <Search className="w-3.5 h-3.5 text-[#8C8278] absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search invoices..."
+              className="w-full bg-white text-xs text-[#1A1918] placeholder-[#8C8278] pl-8.5 pr-3 py-1.5 rounded-lg border border-[#EDE8E1] focus:outline-none focus:border-[#0071E3] focus:ring-2 focus:ring-[#0071E3]/15 transition-all"
+            />
+          </div>
+
+          {/* Apple Segmented Control */}
+          <div className="segmented-control self-start sm:self-auto overflow-x-auto max-w-full">
+            {['All', 'Paid', 'Pending', 'Overdue', 'Sent', 'Draft'].map(st => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-2.5 py-1 text-[11px] rounded-md transition-all cursor-pointer whitespace-nowrap ${statusFilter === st ? 'bg-white text-[#4A3F35] font-medium shadow-2xs' : 'text-[#7A6548] hover:text-[#5C4D35]'
+                  }`}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Loading Skeleton State */}
+        {isLoading ? (
+          <TableSkeleton rows={5} />
+        ) : (
+          /* Invoices Table Card */
+          <Card padding="none" className="overflow-hidden border border-[#EDE8E1]">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#F4F0EA] border-b border-[#EDE8E1] text-[11px] font-medium text-[#8C8278] select-none">
+                  <tr>
+                    <th className="py-2.5 px-4 font-medium">Invoice #</th>
+                    <th className="py-2.5 px-3 font-medium">Client</th>
+                    <th className="py-2.5 px-3 font-medium">Due Date</th>
+                    <th className="py-2.5 px-3 font-medium">Status</th>
+                    <th className="py-2.5 px-3 font-medium">Amount</th>
+                    <th className="py-2.5 px-4 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F4F0EA]">
+                  {filteredInvoices.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-10 text-center text-xs text-[#8C8278]">
+                        No invoices found. Click "New Invoice" to issue one.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredInvoices.map(inv => (
+                      <tr
+                        key={inv.id}
+                        onClick={() => onSelectInvoice(inv.id)}
+                        className="hover:bg-[#F4F0EA] transition-colors cursor-pointer group"
+                      >
+                        {/* Invoice Number */}
+                        <td className="py-3 px-4 font-mono font-medium text-xs text-[#1A1918] group-hover:text-[#0071E3]">
+                          <div className="flex items-center gap-1.5">
+                            <Receipt className="w-3.5 h-3.5 text-[#8C8278]" />
+                            <span>{inv.invoiceNumber}</span>
+                          </div>
+                        </td>
+
+                        {/* Client Name + Avatar */}
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-2">
+                            <Avatar name={inv.clientName} size="sm" />
+                            <span className="font-medium text-[#1A1918]">{inv.clientName}</span>
+                          </div>
+                        </td>
+
+                        {/* Due Date */}
+                        <td className="py-3 px-3 text-[11px] text-[#8C8278]">
+                          {inv.dueDate}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-3 px-3">
+                          <Badge size="sm" variant={inv.status.toLowerCase() as any}>
+                            {inv.status}
+                          </Badge>
+                        </td>
+
+                        {/* Amount */}
+                        <td className="py-3 px-3 font-medium text-[#1A1918]">
+                          ${inv.total.toFixed(2)}
+                        </td>
+
+                        {/* Actions dropdown */}
+                        <td
+                          className="py-3 px-4 text-right relative"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            {inv.status !== 'Paid' && (
+                              <Button
+                                variant="secondary"
+                                size="xs"
+                                onClick={() => handleMarkPaid(inv)}
+                                className="text-[#248A3D] border-[#34C759]/30 bg-[#34C759]/10 hover:bg-[#34C759]/20 text-[10px]"
+                              >
+                                Paid
+                              </Button>
+                            )}
+
+                            <button
+                              onClick={() => setActiveMenuId(activeMenuId === inv.id ? null : inv.id)}
+                              className="p-1 text-[#8C8278] hover:text-[#1A1918] hover:bg-black/[0.04] rounded-md transition-colors cursor-pointer"
+                              aria-label="Invoice actions"
+                            >
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {activeMenuId === inv.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setActiveMenuId(null)}
+                              />
+                              <div className="absolute right-4 mt-1 w-36 bg-white border border-[#EDE8E1] rounded-xl shadow-lg p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    onSelectInvoice(inv.id);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#1A1918] hover:bg-[#F4F0EA] rounded-lg text-left cursor-pointer font-medium"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-[#8C8278]" />
+                                  <span>View</span>
+                                </button>
+
+                                {inv.status !== 'Paid' ? (
+                                  <button
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      handleMarkPaid(inv);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#248A3D] hover:bg-[#34C759]/10 rounded-lg text-left cursor-pointer font-medium"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>Mark Paid</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={async () => {
+                                      setActiveMenuId(null);
+                                      await onUpdateStatus(inv.id, 'Pending');
+                                      showToast(`Invoice ${inv.invoiceNumber} set to Pending`, 'info');
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#C97100] hover:bg-[#FF9500]/10 rounded-lg text-left cursor-pointer font-medium"
+                                  >
+                                    <span>Set Pending</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    setPendingDelete(inv);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#FF3B30] hover:bg-[#FF3B30]/10 rounded-lg text-left cursor-pointer font-medium"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-[#FF3B30]" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile & Tablet Stacked Card View */}
+            <div className="md:hidden divide-y divide-[#F4F0EA]">
+              {filteredInvoices.length === 0 ? (
+                <div className="py-8 px-4 text-center text-xs text-[#8C8278]">
+                  No invoices found. Click "New Invoice" to issue one.
+                </div>
+              ) : (
+                filteredInvoices.map(inv => (
+                  <div
+                    key={inv.id}
+                    onClick={() => onSelectInvoice(inv.id)}
+                    className="p-3.5 hover:bg-[#F4F0EA] transition-colors cursor-pointer space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Receipt className="w-3.5 h-3.5 text-[#8C8278]" />
+                        <span className="font-mono font-medium text-xs text-[#1A1918]">{inv.invoiceNumber}</span>
+                      </div>
+                      <Badge size="sm" variant={inv.status.toLowerCase() as any}>
+                        {inv.status}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Avatar name={inv.clientName} size="sm" />
+                        <span className="font-medium text-xs text-[#1A1918] truncate">{inv.clientName}</span>
+                      </div>
+                      <span className="font-semibold text-xs text-[#1A1918]">${inv.total.toFixed(2)}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-[#8C8278] pt-0.5">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-[#8C8278]" />
+                        <span>Due {inv.dueDate}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                        {inv.status !== 'Paid' && (
+                          <Button
+                            variant="secondary"
+                            size="xs"
+                            onClick={() => handleMarkPaid(inv)}
+                            className="text-[#248A3D] border-[#34C759]/30 bg-[#34C759]/10 hover:bg-[#34C759]/20 text-[10px]"
+                          >
+                            Paid
+                          </Button>
+                        )}
+                        <Button
+                          variant="primary"
+                          size="xs"
+                          onClick={() => onSelectInvoice(inv.id)}
+                        >
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Pagination Footer */}
+            <div className="px-4 py-2.5 bg-[#F4F0EA] border-t border-[#EDE8E1] flex items-center justify-between text-xs text-[#8C8278]">
+              <span className="text-[11px]">
+                Showing 1–{filteredInvoices.length} of {invoices.length} invoices
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="secondary"
+                  size="xs"
+                  isIconOnly
+                  disabled
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="primary"
+                  size="xs"
+                  className="w-6 h-6 p-0 text-[11px]"
+                >
+                  1
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="xs"
+                  isIconOnly
+                  disabled
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+      </>)}
 
       {/* Delete Invoice Confirmation */}
       <ConfirmDialog

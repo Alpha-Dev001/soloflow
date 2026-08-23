@@ -78,9 +78,7 @@ function getProposalId(pathname: string): string | null {
     return match ? decodeURIComponent(match[1]) : null;
 }
 
-function LoadingState() {
-    return <div className="min-h-60 flex items-center justify-center text-sm text-[#7A6548]">Loading workspace…</div>;
-}
+
 
 /** Resets scroll position to the top whenever the route changes */
 function ScrollToTop() {
@@ -90,6 +88,31 @@ function ScrollToTop() {
     }, [pathname]);
     return null;
 }
+
+const EMPTY_METRICS: import('./types').DashboardMetrics = {
+    totalRevenue: 0,
+    revenueGrowthPercent: 0,
+    activeProjects: 0,
+    activeProjectsGrowth: 0,
+    pendingPayments: 0,
+    pendingPaymentsGrowthPercent: 0,
+    completedProjects: 0,
+    completedProjectsGrowth: 0,
+    revenueOverview: { period: '', total: 0, growthPercent: 0, timeline: [] },
+    recentActivities: [],
+    upcoming: [],
+    topClients: [],
+    projectStatusBreakdown: { active: 0, onHold: 0, completed: 0, cancelled: 0 }
+};
+
+const EMPTY_ANALYTICS: import('./types').AnalyticsData = {
+    totalRevenue: 0,
+    avgProjectValue: 0,
+    proposalWinRate: 0,
+    collectionRate: 0,
+    monthlyRevenue: [],
+    topClientsRevenue: []
+};
 
 function AppContent() {
     const { showToast } = useToast();
@@ -375,7 +398,7 @@ function AppContent() {
                 <Route path="/cookies" element={<CookiePolicyPage />} />
                 <Route path="/demo" element={<DemoPage />} />
                 <Route element={user ? <Shell currentPage={currentPage} onNavigate={handleNavigate} user={user} onLogout={handleLogout} onOpenQuickCreate={handleQuickCreate} onResetSeed={handleResetDemo} searchData={{ clients, projects, proposals, invoices }} activities={metrics?.recentActivities || []}><Outlet /></Shell> : <Navigate to="/login" replace />}>
-                    <Route path="/dashboard" element={!onboarded ? <Navigate to="/onboarding" replace /> : metrics ? <DashboardPage metrics={metrics} user={user} invoices={invoices} projects={projects} proposals={proposals} onNavigate={handleNavigate} onOpenQuickCreate={handleQuickCreate} /> : <LoadingState />} />
+                    <Route path="/dashboard" element={!onboarded ? <Navigate to="/onboarding" replace /> : <DashboardPage metrics={metrics ?? EMPTY_METRICS} user={user} invoices={invoices} projects={projects} proposals={proposals} onNavigate={handleNavigate} onOpenQuickCreate={handleQuickCreate} />} />
                     <Route path="/clients" element={<ClientsPage clients={clients} onSelectClient={id => handleNavigate('client-detail', id)} onCreateClient={handleCreateClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} />} />
                     <Route path="/clients/:clientId" element={selectedClientId ? <ClientDetailPage clientId={selectedClientId} onBack={() => handleNavigate('clients')} onNavigate={handleNavigate} onUpdateClient={handleUpdateClient} /> : <Navigate to="/clients" replace />} />
                     <Route path="/projects" element={<ProjectsPage projects={projects} clients={clients} onCreateProject={handleCreateProject} onUpdateProject={handleUpdateProject} onUpdateStatus={handleUpdateProjectStatus} onDeleteProject={handleDeleteProject} />} />
@@ -384,7 +407,7 @@ function AppContent() {
                     <Route path="/proposals/:proposalId/edit" element={<ProposalEditorPage proposalId={selectedProposalId} {...editorProps} />} />
                     <Route path="/invoices" element={<InvoicesPage invoices={invoices} clients={clients} projects={projects} onSelectInvoice={id => handleNavigate('invoice-detail', id)} onCreateInvoice={handleCreateInvoice} onUpdateStatus={handleUpdateInvoiceStatus} onDeleteInvoice={handleDeleteInvoice} />} />
                     <Route path="/invoices/:invoiceId" element={selectedInvoiceId ? <InvoiceDetailPage invoiceId={selectedInvoiceId} clients={clients} onBack={() => handleNavigate('invoices')} onUpdateStatus={handleUpdateInvoiceStatus} /> : <Navigate to="/invoices" replace />} />
-                    <Route path="/analytics" element={analytics ? <AnalyticsPage analytics={analytics} clients={clients} projects={projects} invoices={invoices} proposals={proposals} /> : <LoadingState />} />
+                    <Route path="/analytics" element={<AnalyticsPage analytics={analytics ?? EMPTY_ANALYTICS} clients={clients} projects={projects} invoices={invoices} proposals={proposals} />} />
                     <Route path="/calendar" element={<CalendarPage events={events} clients={clients} onCreateEvent={handleCreateEvent} onDeleteEvent={handleDeleteEvent} />} />
                     <Route path="/settings" element={<SettingsPage user={user} onUpdateProfile={handleUpdateProfile} onResetDemo={handleResetDemo} />} />
                     <Route path="/ai-assistant" element={<AIAssistantPage user={user} clients={clients} projects={projects} proposals={proposals} invoices={invoices} analytics={analytics} onNavigate={handleNavigate} onCreateProposal={handleCreateProposal} />} />

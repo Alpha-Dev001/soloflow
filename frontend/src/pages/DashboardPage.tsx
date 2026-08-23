@@ -355,30 +355,49 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {/* ══ KPI Cards — actionable metrics ══ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiCards.map(m => (
-          <Card key={m.label} className="p-5 transition-all duration-300 hover:-translate-y-0.5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: T.muted }}>
-                {m.label}
-              </span>
-              <span
-                className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
-                style={
-                  m.up
-                    ? { color: '#1E7D3F', backgroundColor: 'rgba(30,125,63,0.10)' }
-                    : { color: '#B4552F', backgroundColor: 'rgba(180,85,47,0.08)' }
-                }
-              >
-                {m.up ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
-                {m.delta}
-              </span>
-            </div>
-            <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
-              {m.value}
-            </div>
-            <p className="text-[11px] font-medium mt-2" style={{ color: T.muted }}>{m.note}</p>
-          </Card>
-        ))}
+        {kpiCards.map(m => {
+          const isEmpty = metrics.totalRevenue === 0 && metrics.activeProjects === 0 && metrics.pendingPayments === 0 && metrics.upcoming.length === 0;
+          return (
+            <Card key={m.label} className="p-5 transition-all duration-300 hover:-translate-y-0.5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: T.muted }}>
+                  {m.label}
+                </span>
+                {!isEmpty && (
+                  <span
+                    className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
+                    style={
+                      m.up
+                        ? { color: '#1E7D3F', backgroundColor: 'rgba(30,125,63,0.10)' }
+                        : { color: '#B4552F', backgroundColor: 'rgba(180,85,47,0.08)' }
+                    }
+                  >
+                    {m.up ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
+                    {m.delta}
+                  </span>
+                )}
+              </div>
+              {isEmpty ? (
+                <div>
+                  <div className="text-[22px] font-bold tracking-tight leading-none mb-2" style={{ color: T.borderStrong }}>—</div>
+                  <p className="text-[11px] font-medium leading-relaxed" style={{ color: T.muted }}>
+                    {m.label === 'This month' && 'Add invoices to track revenue'}
+                    {m.label === 'To collect' && 'No pending payments yet'}
+                    {m.label === 'Active projects' && 'Create your first project'}
+                    {m.label === 'Deadlines' && 'Nothing scheduled yet'}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
+                    {m.value}
+                  </div>
+                  <p className="text-[11px] font-medium mt-2" style={{ color: T.muted }}>{m.note}</p>
+                </div>
+              )}
+            </Card>
+          );
+        })}
       </div>
 
       {/* ══ Graph + Attention Split Layout (Compact, Minimalistic & Professional) ══ */}
@@ -393,9 +412,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <span className="text-xl font-bold tracking-tight" style={{ color: T.ink }}>
                     {cur}{metrics.revenueOverview.total.toLocaleString()}
                   </span>
-                  <span className="text-[11px] font-semibold" style={{ color: '#1E7D3F' }}>
-                    +{metrics.revenueOverview.growthPercent}%
-                  </span>
+                  {metrics.revenueOverview.growthPercent > 0 && (
+                    <span className="text-[11px] font-semibold" style={{ color: '#1E7D3F' }}>
+                      +{metrics.revenueOverview.growthPercent}%
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -413,81 +434,55 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </div>
             </div>
 
-            {/* SVG Smooth Curve Line Chart */}
-            <div className="w-full pt-1">
-              <div className="flex gap-2">
-                <div className="h-40 flex flex-col justify-between text-[9px] tabular-nums py-1 shrink-0" style={{ color: T.muted }}>
-                  <span>${Math.round(maxVal / 1000)}k</span>
-                  <span>${Math.round(maxVal * .5 / 1000)}k</span>
-                  <span>$0</span>
-                </div>
-                <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-40 overflow-visible" role="img" aria-label={`Revenue over the selected ${timePeriod} period`}>
-                  <defs>
-                    <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={T.accent} stopOpacity="0.18" />
-                      <stop offset="100%" stopColor={T.accent} stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-
-                  {/* Subtle horizontal grid lines */}
-                  {[0.25, 0.5, 0.75, 1].map(r => (
-                    <line
-                      key={r}
-                      x1="0"
-                      y1={chartHeight * r}
-                      x2={chartWidth}
-                      y2={chartHeight * r}
-                      stroke={T.border}
-                      strokeDasharray="3 4"
-                    />
-                  ))}
-
-                  {/* Shaded Area */}
-                  <path d={areaD} fill="url(#revenueGrad)" />
-
-                  {/* Line Path */}
-                  <path
-                    d={pathD}
-                    fill="none"
-                    stroke={T.accent}
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                  />
-
-                  {/* Data Points */}
-                  {points.map(p => (
-                    <g key={p.month} className="group">
-                      <circle
-                        cx={p.x}
-                        cy={p.y}
-                        r="3.5"
-                        fill="#FFFFFF"
-                        stroke={T.accent}
-                        strokeWidth="2"
-                        className="transition-all cursor-pointer"
-                      />
-                      <text
-                        x={p.x}
-                        y={p.y - 8}
-                        textAnchor="middle"
-                        className="text-[9px] font-medium opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                        fill={T.body}
-                      >
-                        ${(p.amount / 1000).toFixed(1)}k
-                      </text>
-                    </g>
-                  ))}
-                </svg>
+            {/* Chart or empty state */}
+            {timelineData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-40 rounded-xl border border-dashed" style={{ borderColor: T.borderStrong, backgroundColor: T.bg }}>
+                <BarChart3 className="w-6 h-6 mb-2" style={{ color: T.borderStrong }} />
+                <p className="text-[12px] font-semibold mb-0.5" style={{ color: T.ink }}>No revenue data yet</p>
+                <p className="text-[11px]" style={{ color: T.muted }}>Record paid invoices to see your chart</p>
               </div>
-            </div>
+            ) : (
+              <div className="w-full pt-1">
+                <div className="flex gap-2">
+                  <div className="h-40 flex flex-col justify-between text-[9px] tabular-nums py-1 shrink-0" style={{ color: T.muted }}>
+                    <span>${Math.round(maxVal / 1000)}k</span>
+                    <span>${Math.round(maxVal * .5 / 1000)}k</span>
+                    <span>$0</span>
+                  </div>
+                  <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-40 overflow-visible" role="img" aria-label={`Revenue over the selected ${timePeriod} period`}>
+                    <defs>
+                      <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={T.accent} stopOpacity="0.18" />
+                        <stop offset="100%" stopColor={T.accent} stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    {[0.25, 0.5, 0.75, 1].map(r => (
+                      <line key={r} x1="0" y1={chartHeight * r} x2={chartWidth} y2={chartHeight * r} stroke={T.border} strokeDasharray="3 4" />
+                    ))}
+                    <path d={areaD} fill="url(#revenueGrad)" />
+                    <path d={pathD} fill="none" stroke={T.accent} strokeWidth="2.5" strokeLinecap="round" />
+                    {points.map(p => (
+                      <g key={p.month} className="group">
+                        <circle cx={p.x} cy={p.y} r="3.5" fill="#FFFFFF" stroke={T.accent} strokeWidth="2" className="transition-all cursor-pointer" />
+                        <text x={p.x} y={p.y - 8} textAnchor="middle" className="text-[9px] font-medium opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" fill={T.body}>
+                          ${(p.amount / 1000).toFixed(1)}k
+                        </text>
+                      </g>
+                    ))}
+                  </svg>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* X-Axis labels (placed cleanly at the bottom) */}
-          <div className="flex justify-between px-2 pt-2.5 mt-2 border-t text-[11px] font-medium" style={{ borderColor: T.bg, color: T.muted }}>
-            {timelineData.map(d => (
-              <span key={d.month}>{d.month}</span>
-            ))}
-          </div>
+          {/* X-Axis labels */}
+          {timelineData.length > 0 && (
+            <div className="flex justify-between px-2 pt-2.5 mt-2 border-t text-[11px] font-medium" style={{ borderColor: T.bg, color: T.muted }}>
+              {timelineData.map(d => (
+                <span key={d.month}>{d.month}</span>
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Quick Actions — compact, short-height card that keeps the chart row balanced */}
@@ -577,9 +572,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   </div>
                 ))
               ) : (
-                <div className="text-center py-6">
-                  <CheckCircle className="w-5 h-5 mx-auto mb-1.5" style={{ color: '#1E7D3F' }} />
-                  <p className="text-[11px] font-semibold" style={{ color: T.ink }}>Nothing today</p>
+                <div className="flex flex-col items-center justify-center py-5 text-center">
+                  <CalendarIcon className="w-5 h-5 mb-2" style={{ color: T.borderStrong }} />
+                  <p className="text-[12px] font-semibold mb-0.5" style={{ color: T.ink }}>Nothing scheduled</p>
+                  <p className="text-[11px]" style={{ color: T.muted }}>Add events to plan your week</p>
                 </div>
               )}
             </div>
@@ -639,8 +635,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   );
                 })
               ) : (
-                <div className="text-center py-6 text-xs" style={{ color: T.muted }}>
-                  <p>No active projects</p>
+                <div className="flex flex-col items-center justify-center py-5 text-center">
+                  <FolderKanban className="w-5 h-5 mb-2" style={{ color: T.borderStrong }} />
+                  <p className="text-[12px] font-semibold mb-0.5" style={{ color: T.ink }}>No active projects</p>
+                  <p className="text-[11px]" style={{ color: T.muted }}>Create a project to get started</p>
                 </div>
               )}
             </div>

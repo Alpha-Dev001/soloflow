@@ -12,7 +12,9 @@ import {
   CheckCircle2,
   FileText,
   Calendar,
-  Briefcase
+  Briefcase,
+  Users,
+  ArrowRight
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -220,16 +222,16 @@ export const ProposalsPage: React.FC<ProposalsPageProps> = ({
                                 </button>
                               )}
 
-                               <button
-                                 onClick={() => {
-                                   setActiveMenuId(null);
-                                   setPendingDelete(prop);
-                                 }}
-                                 className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#FF3B30] hover:bg-[#FF3B30]/10 rounded-lg text-left cursor-pointer font-medium"
-                               >
-                                 <Trash2 className="w-3.5 h-3.5 text-[#FF3B30]" />
-                                 <span>Delete</span>
-                               </button>
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  setPendingDelete(prop);
+                                }}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-[#FF3B30] hover:bg-[#FF3B30]/10 rounded-lg text-left cursor-pointer font-medium"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-[#FF3B30]" />
+                                <span>Delete</span>
+                              </button>
                             </div>
                           </>
                         )}
@@ -336,9 +338,9 @@ export const ProposalsPage: React.FC<ProposalsPageProps> = ({
                 <ChevronRight className="w-3 h-3" />
               </Button>
             </div>
-           </div>
-         </Card>
-       )}
+          </div>
+        </Card>
+      )}
 
       {/* Delete Proposal Confirmation */}
       <ConfirmDialog
@@ -359,6 +361,6 @@ export const ProposalsPage: React.FC<ProposalsPageProps> = ({
           { label: 'Amount', value: `$${pendingDelete.amount.toLocaleString()}` }
         ] : []}
       />
-     </div>
-   );
- };
+    </div>
+  );
+};
