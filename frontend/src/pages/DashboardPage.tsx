@@ -13,7 +13,6 @@ import {
   ExternalLink,
   TrendingUp,
   TrendingDown,
-  BarChart3,
   Send,
   Eye,
   Sparkles,
@@ -22,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { RevenueChart, ProjectStatusChart, TopClientsChart } from '../components/charts/RevenueChart';
 import type { DashboardMetrics, User, Invoice, Project, Proposal } from '../types';
 import type { NavPage } from '../components/layout/Sidebar';
 
@@ -68,7 +68,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [showNewMenu, setShowNewMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const newBtnRef = useRef<HTMLDivElement>(null);
-  const [timePeriod, setTimePeriod] = useState<'30D' | '90D' | '6M' | '1Y'>('90D');
+  const [timePeriod, setTimePeriod] = useState<'30D' | '90D' | '6M' | '1Y'>('6M');
 
   // Greeting adapts to the visitor's local time of day
   const greeting = useMemo(() => {
@@ -200,24 +200,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       : timePeriod === '1Y'
         ? allTimelineData
         : allTimelineData.slice(-6);
-  const maxVal = Math.max(...timelineData.map(d => d.amount), 1);
-  const chartWidth = 620;
-  const chartHeight = 120; // super sleek line height
-
-  const points = timelineData.map((d, i) => {
-    const x = timelineData.length === 1 ? chartWidth / 2 : (i / (timelineData.length - 1)) * (chartWidth - 48) + 24;
-    const y = chartHeight - (d.amount / maxVal) * (chartHeight - 48) - 24;
-    return { x, y, month: d.month, amount: d.amount };
-  });
-
-  const pathD = points.reduce((acc, p, i, arr) => {
-    if (i === 0) return `M ${p.x} ${p.y}`;
-    const prev = arr[i - 1];
-    const cx = (prev.x + p.x) / 2;
-    return `${acc} C ${cx} ${prev.y}, ${cx} ${p.y}, ${p.x} ${p.y}`;
-  }, '');
-
-  const areaD = points.length ? `${pathD} L ${points[points.length - 1].x} ${chartHeight} L ${points[0].x} ${chartHeight} Z` : '';
 
   // ── Today's tasks (from upcoming + overdue) ──
   const todayItems = useMemo(() => {
@@ -565,55 +547,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </div>
             </div>
 
-            {/* Chart or empty state */}
-            {timelineData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 rounded-xl border border-dashed" style={{ borderColor: T.borderStrong, backgroundColor: T.bg }}>
-                <BarChart3 className="w-6 h-6 mb-2" style={{ color: T.borderStrong }} />
-                <p className="text-[12px] font-semibold mb-0.5" style={{ color: T.ink }}>No revenue data yet</p>
-                <p className="text-[11px]" style={{ color: T.muted }}>Record paid invoices to see your chart</p>
-              </div>
-            ) : (
-              <div className="w-full pt-1">
-                <div className="flex gap-2">
-                  <div className="h-40 flex flex-col justify-between text-[9px] tabular-nums py-1 shrink-0" style={{ color: T.muted }}>
-                    <span>${Math.round(maxVal / 1000)}k</span>
-                    <span>${Math.round(maxVal * .5 / 1000)}k</span>
-                    <span>$0</span>
-                  </div>
-                  <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-40 overflow-visible" role="img" aria-label={`Revenue over the selected ${timePeriod} period`}>
-                    <defs>
-                      <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={T.accent} stopOpacity="0.18" />
-                        <stop offset="100%" stopColor={T.accent} stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-                    {[0.25, 0.5, 0.75, 1].map(r => (
-                      <line key={r} x1="0" y1={chartHeight * r} x2={chartWidth} y2={chartHeight * r} stroke={T.border} strokeDasharray="3 4" />
-                    ))}
-                    <path d={areaD} fill="url(#revenueGrad)" />
-                    <path d={pathD} fill="none" stroke={T.accent} strokeWidth="2.5" strokeLinecap="round" />
-                    {points.map(p => (
-                      <g key={p.month} className="group">
-                        <circle cx={p.x} cy={p.y} r="3.5" fill="#FFFFFF" stroke={T.accent} strokeWidth="2" className="transition-all cursor-pointer" />
-                        <text x={p.x} y={p.y - 8} textAnchor="middle" className="text-[9px] font-medium opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" fill={T.body}>
-                          ${(p.amount / 1000).toFixed(1)}k
-                        </text>
-                      </g>
-                    ))}
-                  </svg>
-                </div>
-              </div>
-            )}
+            {/* Professional Chart */}
+            <RevenueChart
+              data={timelineData}
+              currency={cur}
+              height={280}
+              showTarget={timelineData.some(d => d.target !== undefined)}
+            />
           </div>
-
-          {/* X-Axis labels */}
-          {timelineData.length > 0 && (
-            <div className="flex justify-between px-2 pt-2.5 mt-2 border-t text-[11px] font-medium" style={{ borderColor: T.bg, color: T.muted }}>
-              {timelineData.map(d => (
-                <span key={d.month}>{d.month}</span>
-              ))}
-            </div>
-          )}
         </Card>
 
         {/* Quick Actions — compact, short-height card that keeps the chart row balanced */}
@@ -665,6 +606,73 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <div className="text-[9.5px] truncate" style={{ color: 'rgba(248,244,238,0.55)' }}>Draft proposals in seconds →</div>
             </div>
           </button>
+        </Card>
+      </div>
+
+      {/* ══ Professional Analytics Section ══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Project Status Breakdown */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: T.border }}>
+            <h3 className="font-semibold text-sm" style={{ color: T.ink }}>Project Status Breakdown</h3>
+            <button
+              onClick={() => onNavigate('projects')}
+              className="text-[10px] font-bold hover:underline cursor-pointer transition-colors"
+              style={{ color: T.accent }}
+            >
+              View all →
+            </button>
+          </div>
+          <div className="flex items-center gap-6 mt-4">
+            <ProjectStatusChart
+              data={[
+                { name: 'In Progress', value: metrics.projectStatusBreakdown.active, color: T.accent },
+                { name: 'Completed', value: metrics.projectStatusBreakdown.completed, color: T.success },
+                { name: 'On Hold', value: metrics.projectStatusBreakdown.onHold, color: T.warning },
+                { name: 'Cancelled', value: metrics.projectStatusBreakdown.cancelled, color: T.muted }
+              ]}
+              size={180}
+            />
+            <div className="flex-1 space-y-2">
+              {[
+                { label: 'In Progress', value: metrics.projectStatusBreakdown.active, color: T.accent },
+                { label: 'Completed', value: metrics.projectStatusBreakdown.completed, color: T.success },
+                { label: 'On Hold', value: metrics.projectStatusBreakdown.onHold, color: T.warning },
+                { label: 'Cancelled', value: metrics.projectStatusBreakdown.cancelled, color: T.muted }
+              ].map((item) => (
+                <div key={item.label} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-xs" style={{ color: T.body }}>{item.label}</span>
+                  </div>
+                  <span className="text-xs font-semibold" style={{ color: T.ink }}>{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* Top Clients by Revenue */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: T.border }}>
+            <h3 className="font-semibold text-sm" style={{ color: T.ink }}>Top Clients by Revenue</h3>
+            <button
+              onClick={() => onNavigate('clients')}
+              className="text-[10px] font-bold hover:underline cursor-pointer transition-colors"
+              style={{ color: T.accent }}
+            >
+              View all →
+            </button>
+          </div>
+          <TopClientsChart
+            data={metrics.topClients.map(c => ({
+              name: c.name,
+              revenue: c.totalSpent,
+              projects: c.projectsCount
+            }))}
+            currency={cur}
+            height={220}
+          />
         </Card>
       </div>
 

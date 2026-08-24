@@ -72,7 +72,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             style={{ animationDelay: '0.22s' }}
           >
             Run your freelance business{' '}
-            <span className="italic font-light text-[#C9B79E]">effortlessly.</span>
+            <span className="font-light text-[#C9B79E]">effortlessly.</span>
           </h2>
 
           <ul className="space-y-4">
@@ -91,7 +91,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
         {/* Bottom — quiet endorsement */}
         <figure className="relative z-10 auth-fade-item" style={{ animationDelay: '0.68s' }}>
-          <blockquote className="text-[13px] font-medium text-white/70 leading-relaxed italic mb-2">
+          <blockquote className="text-[13px] font-medium text-white/70 leading-relaxed mb-2">
             "Proposals that took hours now take minutes."
           </blockquote>
           <figcaption className="text-[11px] font-medium text-white/50">Sarah Jenkins · Brand Strategist</figcaption>

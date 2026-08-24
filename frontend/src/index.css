@@ -1,66 +1,39 @@
 @import "tailwindcss";
 
-/* ── Font Definitions ── */
-:root {
-  --font-display: 'Iceberg', cursive;
-  --font-heading: 'Iceberg', cursive;
-  --font-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --font-sans: 'Iceberg', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-body: 'Iceberg', sans-serif;
+/* ── Brand Typography ──
+   Single brand typeface: Playpen Sans.
+   Declared via Tailwind v4 @theme so every element (body, headings,
+   inputs, buttons) inherits it automatically — no other font is used. */
+@theme {
+  --font-sans: "Playpen Sans", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
 }
 
-/* Apply display font to main brand elements */
-.brand-name,
-.logo-text,
-.nav-brand {
-  font-family: var(--font-display);
+html {
+  font-family: var(--font-sans);
 }
 
-/* Apply elegant serif font to section headings */
+body {
+  font-family: var(--font-sans);
+}
+
+/* Headings share the same family — differentiated by weight only.
+   No negative letter-spacing: handwriting faces need natural spacing. */
 h1 {
-  font-family: var(--font-heading);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 h2,
 h3 {
-  font-family: var(--font-heading);
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 h4,
 h5,
 h6 {
-  font-family: var(--font-serif);
   font-weight: 600;
-}
-
-/* Body text uses Lato for excellent readability */
-body {
-  font-family: var(--font-body);
-}
-
-/* Utility classes for explicit font usage */
-.font-display {
-  font-family: var(--font-display);
-}
-
-.font-heading {
-  font-family: var(--font-heading);
-}
-
-.font-serif {
-  font-family: var(--font-serif);
-}
-
-.font-sans {
-  font-family: var(--font-sans);
-}
-
-.font-body {
-  font-family: var(--font-body);
 }
 
 /* ── Smooth Scrolling ── */
@@ -219,28 +192,19 @@ html {
 
 @layer base {
   body {
-    font-family: "Iceberg", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
+    font-family: "Playpen Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     background: linear-gradient(135deg, #C9C3BB 0%, #D9D3CB 50%, #E5DFD7 100%);
     color: #1A1918;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    letter-spacing: -0.011em;
   }
 
-  /* Display serif for headings — warm editorial voice matching the brand palette */
+  /* Headings use the same brand typeface — weight and tracking only */
   h1,
   h2,
   h3 {
-    font-family: "Iceberg", sans-serif;
-    font-optical-sizing: auto;
-    letter-spacing: -0.02em;
-  }
-
-  h4,
-  h5,
-  h6 {
-    letter-spacing: -0.015em;
+    letter-spacing: 0;
   }
 }
 

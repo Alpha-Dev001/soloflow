@@ -98,7 +98,7 @@ export const DemoPage: React.FC = () => {
           </p>
           <h1 className="text-[34px] sm:text-[46px] font-bold tracking-[-0.025em] leading-[1.1] mb-4">
             See SoloFlow<br />
-            <span style={{ fontStyle: 'italic', fontWeight: 300, color: T.accent }}>in action</span>
+            <span style={{ fontWeight: 300, color: T.accent }}>in action</span>
           </h1>
           <p className="text-[15px] max-w-md mx-auto leading-relaxed" style={{ color: T.body }}>
             Watch how freelancers manage clients, generate proposals, and send invoices — all from one workspace.

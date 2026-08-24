@@ -324,7 +324,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             }}
           >
             Run your freelance<br />
-            <span style={{ fontStyle: 'italic', fontWeight: 300, color: T.accent }}>
+            <span style={{ fontWeight: 300, color: T.accent }}>
               business, effortlessly.
             </span>
           </h1>
@@ -368,7 +368,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: T.accent }}>Features</p>
           <h2 className="text-[36px] sm:text-[46px] font-bold tracking-[-0.025em] leading-[1.1] max-w-xl mx-auto">
             Everything a solo<br />
-            <span style={{ fontStyle: 'italic', fontWeight: 300, color: T.accent }}>business needs</span>
+            <span style={{ fontWeight: 300, color: T.accent }}>business needs</span>
           </h2>
         </Reveal>
 
@@ -480,7 +480,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: T.accent }}>FAQs</p>
           <h2 className="text-[36px] sm:text-[46px] font-bold tracking-[-0.025em] leading-[1.1]">
             Questions,<br />
-            <span style={{ fontStyle: 'italic', fontWeight: 300, color: T.accent }}>answered.</span>
+            <span style={{ fontWeight: 300, color: T.accent }}>answered.</span>
           </h2>
         </Reveal>
 
@@ -553,7 +553,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="relative z-10">
               <h2 className="text-[34px] sm:text-[48px] font-bold tracking-[-0.03em] text-white leading-[1.08] mb-5">
                 Ready to run your business<br />
-                <span style={{ fontStyle: 'italic', fontWeight: 300, color: T.accentLight }}>the smart way?</span>
+                <span style={{ fontWeight: 300, color: T.accentLight }}>the smart way?</span>
               </h2>
               <p className="text-[15px] font-medium text-white/85 mb-10 max-w-md mx-auto">
                 Join thousands of freelancers who replaced 5 disconnected tools with one workspace.

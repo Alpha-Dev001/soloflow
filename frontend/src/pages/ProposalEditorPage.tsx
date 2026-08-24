@@ -43,7 +43,7 @@ const T = {
   accentSoft: '#B39C82'
 };
 
-const SERIF = '"Fraunces", Georgia, "Times New Roman", serif';
+const SERIF = '"Playpen Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
 const emptyBrief = {
   clientId: '',
@@ -485,7 +485,7 @@ export const ProposalEditorPage: React.FC<ProposalEditorPageProps> = ({
                   }
                 >
                   {scopeOfWork.length === 0 ? (
-                    <p className="text-[11px] italic px-3 py-2 rounded-lg" style={{ color: T.faint, backgroundColor: T.surfaceWarm }}>
+                    <p className="text-[11px] px-3 py-2 rounded-lg" style={{ color: T.faint, backgroundColor: T.surfaceWarm }}>
                       No scope items yet — add them manually or via AI generation.
                     </p>
                   ) : (
@@ -534,7 +534,7 @@ export const ProposalEditorPage: React.FC<ProposalEditorPageProps> = ({
                   }
                 >
                   {deliverables.length === 0 ? (
-                    <p className="text-[11px] italic px-3 py-2 rounded-lg" style={{ color: T.faint, backgroundColor: T.surfaceWarm }}>
+                    <p className="text-[11px] px-3 py-2 rounded-lg" style={{ color: T.faint, backgroundColor: T.surfaceWarm }}>
                       No deliverables yet — add them manually or via AI generation.
                     </p>
                   ) : (

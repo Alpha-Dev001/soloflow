@@ -79,7 +79,7 @@ export class DashboardService {
           },
         },
       ]),
-      // Top clients by total spent (paid invoices)
+      // Top clients by total spent (paid invoices) with project counts
       this.invoiceModel.aggregate([
         { $match: { userId: userObjId, status: 'Paid' } },
         { $group: { _id: '$clientId', totalSpent: { $sum: '$total' } } },
@@ -95,11 +95,19 @@ export class DashboardService {
         },
         { $unwind: { path: '$client', preserveNullAndEmptyArrays: true } },
         {
+          $lookup: {
+            from: 'projects',
+            localField: '_id',
+            foreignField: 'clientId',
+            as: 'projects',
+          },
+        },
+        {
           $project: {
             id: { $toString: '$_id' },
             name: { $ifNull: ['$client.name', 'Unknown'] },
             totalSpent: 1,
-            projectsCount: { $ifNull: ['$projectsCount', 0] },
+            projectsCount: { $size: '$projects' },
           },
         },
       ]),
@@ -148,6 +156,16 @@ export class DashboardService {
         ? Math.round(((currentMonthAmt - prevMonthAmt) / prevMonthAmt) * 100)
         : 0;
 
+    // Calculate target revenue (20% growth from previous period average)
+    const avgRevenue = timeline.reduce((sum, t) => sum + t.amount, 0) / timeline.length;
+    const targetRevenue = avgRevenue * 1.2;
+
+    // Add target to timeline
+    const timelineWithTarget = timeline.map(t => ({
+      ...t,
+      target: targetRevenue
+    }));
+
     // Project status breakdown
     const statusMap: any = { active: 0, onHold: 0, completed: 0, cancelled: 0 };
     for (const s of projectStatusBreakdown) {
@@ -163,7 +181,7 @@ export class DashboardService {
       name: c.name,
       avatarChar: c.name.charAt(0).toUpperCase(),
       totalSpent: c.totalSpent,
-      projectsCount: 0,
+      projectsCount: c.projectsCount || 0,
     }));
 
     // Upcoming items
@@ -198,7 +216,7 @@ export class DashboardService {
           period: '6M',
           total: totalRevenue,
           growthPercent: revenueGrowthPercent,
-          timeline,
+          timeline: timelineWithTarget,
         },
         recentActivities: recentActivities.map((a) =>
           this.activitiesService.toActivityItem(a),

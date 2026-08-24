@@ -150,7 +150,7 @@ export interface DashboardMetrics {
     period: string;
     total: number;
     growthPercent: number;
-    timeline: { month: string; amount: number }[];
+    timeline: { month: string; amount: number; target?: number }[];
   };
   recentActivities: ActivityItem[];
   upcoming: UpcomingItem[];

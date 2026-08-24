@@ -323,10 +323,10 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({
               <div key={inv.id} className="p-3 rounded-lg border border-[#EDE8E1] bg-[#F4F0EA] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h4 className="font-mono text-xs font-medium text-[#1A1918]">{inv.invoiceNumber}</h4>
-                  <p className="text-[11px] text-[#8C8278] mt-0.5">Due {inv.dueDate}</p>
+                  <p className="text-[11px] text-[#8C8278] mt-0.5">Due {String(inv.dueDate || 'TBD')}</p>
                 </div>
                 <div className="flex items-center justify-between sm:justify-end gap-2">
-                  <span className="text-xs font-semibold text-[#1A1918]">${inv.total.toLocaleString()}</span>
+                  <span className="text-xs font-semibold text-[#1A1918]">${(inv.total || 0).toLocaleString()}</span>
                   <Badge size="sm" variant={inv.status.toLowerCase() as any}>{inv.status}</Badge>
                 </div>
               </div>
