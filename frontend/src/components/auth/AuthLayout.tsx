@@ -114,6 +114,10 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
         {/* Mobile top bar */}
         <header className="lg:hidden px-6 py-5 flex items-center justify-between border-b border-[#EDE8E1]">
+          <div className="flex items-center gap-2">
+            <Logo size={28} rounded="rounded-lg" />
+            <span className="font-bold text-base tracking-tight text-[#1A1918]">SoloFlow</span>
+          </div>
           <button
             onClick={onNavigateLanding}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6358] hover:text-[#1A1918] transition-colors cursor-pointer"
@@ -121,10 +125,6 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             <ArrowLeft className="w-4 h-4" />
             <span>Home</span>
           </button>
-          <div className="flex items-center gap-2">
-            <Logo size={28} rounded="rounded-lg" />
-            <span className="font-bold text-base tracking-tight text-[#1A1918]">SoloFlow</span>
-          </div>
         </header>
 
         {/* Desktop back link */}

@@ -83,8 +83,10 @@ export class ClientsController {
     return {
       client: {
         ...client.toJSON(),
+        id: String(client._id),
         totalSpent,
         projectsCount,
+        _id: undefined,
       },
       projects: normalize(projects),
       proposals: normalize(proposals),

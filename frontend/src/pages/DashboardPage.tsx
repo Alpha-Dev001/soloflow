@@ -48,7 +48,9 @@ const T = {
   muted: '#6B6158',
   accent: '#82694E',
   accentSoft: '#B39C82',
-  dark: '#453B33'
+  dark: '#453B33',
+  success: '#1E7D3F',
+  warning: '#B4552F'
 };
 
 const currencySymbols: Record<string, string> = {
@@ -157,28 +159,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       value: `${cur}${metrics.totalRevenue.toLocaleString()}`,
       delta: `+${metrics.revenueGrowthPercent}%`,
       up: true,
-      note: 'vs. last month'
+      note: 'vs. last month',
+      navigateTo: 'analytics' as NavPage
     },
     {
       label: 'To collect',
       value: `${cur}${metrics.pendingPayments.toLocaleString()}`,
       delta: `${pendingInvoices.length} invoices`,
       up: false,
-      note: 'awaiting payment'
+      note: 'awaiting payment',
+      navigateTo: 'invoices' as NavPage
     },
     {
       label: 'Active projects',
       value: `${metrics.activeProjects}`,
       delta: `${projects.filter(p => p.status === 'In Progress').length} in progress`,
       up: true,
-      note: 'on track'
+      note: 'on track',
+      navigateTo: 'projects' as NavPage
     },
     {
       label: 'Deadlines',
       value: `${metrics.upcoming.length}`,
       delta: `${overdueInvoices.length} overdue`,
       up: false,
-      note: 'next 30 days'
+      note: 'next 30 days',
+      navigateTo: 'calendar' as NavPage
     }
   ];
 
@@ -471,44 +477,50 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         {kpiCards.map(m => {
           const isEmpty = metrics.totalRevenue === 0 && metrics.activeProjects === 0 && metrics.pendingPayments === 0 && metrics.upcoming.length === 0;
           return (
-            <Card key={m.label} className="p-5 transition-all duration-300 hover:-translate-y-0.5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: T.muted }}>
-                  {m.label}
-                </span>
-                {!isEmpty && (
-                  <span
-                    className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
-                    style={
-                      m.up
-                        ? { color: '#1E7D3F', backgroundColor: 'rgba(30,125,63,0.10)' }
-                        : { color: '#B4552F', backgroundColor: 'rgba(180,85,47,0.08)' }
-                    }
-                  >
-                    {m.up ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
-                    {m.delta}
+            <button
+              key={m.label}
+              onClick={() => onNavigate(m.navigateTo)}
+              className="text-left cursor-pointer"
+            >
+              <Card className="p-5 transition-all duration-300 hover:-translate-y-0.5 h-full">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: T.muted }}>
+                    {m.label}
                   </span>
-                )}
-              </div>
-              {isEmpty ? (
-                <div>
-                  <div className="text-[22px] font-bold tracking-tight leading-none mb-2" style={{ color: T.borderStrong }}>—</div>
-                  <p className="text-[11px] font-medium leading-relaxed" style={{ color: T.muted }}>
-                    {m.label === 'This month' && 'Add invoices to track revenue'}
-                    {m.label === 'To collect' && 'No pending payments yet'}
-                    {m.label === 'Active projects' && 'Create your first project'}
-                    {m.label === 'Deadlines' && 'Nothing scheduled yet'}
-                  </p>
+                  {!isEmpty && (
+                    <span
+                      className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
+                      style={
+                        m.up
+                          ? { color: '#1E7D3F', backgroundColor: 'rgba(30,125,63,0.10)' }
+                          : { color: '#B4552F', backgroundColor: 'rgba(180,85,47,0.08)' }
+                      }
+                    >
+                      {m.up ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
+                      {m.delta}
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <div>
-                  <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
-                    {m.value}
+                {isEmpty ? (
+                  <div>
+                    <div className="text-[22px] font-bold tracking-tight leading-none mb-2" style={{ color: T.borderStrong }}>—</div>
+                    <p className="text-[11px] font-medium leading-relaxed" style={{ color: T.muted }}>
+                      {m.label === 'This month' && 'Add invoices to track revenue'}
+                      {m.label === 'To collect' && 'No pending payments yet'}
+                      {m.label === 'Active projects' && 'Create your first project'}
+                      {m.label === 'Deadlines' && 'Nothing scheduled yet'}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-medium mt-2" style={{ color: T.muted }}>{m.note}</p>
-                </div>
-              )}
-            </Card>
+                ) : (
+                  <div>
+                    <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
+                      {m.value}
+                    </div>
+                    <p className="text-[11px] font-medium mt-2" style={{ color: T.muted }}>{m.note}</p>
+                  </div>
+                )}
+              </Card>
+            </button>
           );
         })}
       </div>
@@ -552,7 +564,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               data={timelineData}
               currency={cur}
               height={280}
-              showTarget={timelineData.some(d => d.target !== undefined)}
+              showTarget={false}
             />
           </div>
         </Card>

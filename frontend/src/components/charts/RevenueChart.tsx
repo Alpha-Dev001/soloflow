@@ -99,25 +99,25 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
       <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={T.accent} stopOpacity={0.3}/>
-            <stop offset="95%" stopColor={T.accent} stopOpacity={0}/>
+            <stop offset="5%" stopColor={T.accent} stopOpacity={0.3} />
+            <stop offset="95%" stopColor={T.accent} stopOpacity={0} />
           </linearGradient>
           {showTarget && (
             <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={T.success} stopOpacity={0.2}/>
-              <stop offset="95%" stopColor={T.success} stopOpacity={0}/>
+              <stop offset="5%" stopColor={T.success} stopOpacity={0.2} />
+              <stop offset="95%" stopColor={T.success} stopOpacity={0} />
             </linearGradient>
           )}
         </defs>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.border} />
-        <XAxis 
-          dataKey="month" 
+        <XAxis
+          dataKey="month"
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 11, fill: T.muted }}
           dy={10}
         />
-        <YAxis 
+        <YAxis
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 11, fill: T.muted }}
@@ -125,29 +125,31 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
           width={45}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Legend 
+        <Legend
           wrapperStyle={{ fontSize: '11px', color: T.muted }}
           iconType="circle"
         />
-        <Area 
-          type="monotone" 
-          dataKey="amount" 
+        <Area
+          type="monotone"
+          dataKey="amount"
           name="Revenue"
-          stroke={T.accent} 
+          stroke={T.accent}
           strokeWidth={2.5}
-          fillOpacity={1} 
+          fillOpacity={1}
           fill="url(#colorRevenue)"
+          connectNulls={false}
         />
-        {showTarget && (
-          <Area 
-            type="monotone" 
-            dataKey="target" 
+        {showTarget && data.some(d => d.target !== undefined) && (
+          <Area
+            type="monotone"
+            dataKey="target"
             name="Target"
-            stroke={T.success} 
+            stroke={T.success}
             strokeWidth={2}
             strokeDasharray="5 5"
-            fillOpacity={1} 
+            fillOpacity={1}
             fill="url(#colorTarget)"
+            connectNulls={false}
           />
         )}
       </AreaChart>
@@ -297,8 +299,8 @@ export const TopClientsChart: React.FC<TopClientsChartProps> = ({
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.border} />
-        <XAxis 
-          dataKey="name" 
+        <XAxis
+          dataKey="name"
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 10, fill: T.muted }}
@@ -307,7 +309,7 @@ export const TopClientsChart: React.FC<TopClientsChartProps> = ({
           height={60}
           dy={10}
         />
-        <YAxis 
+        <YAxis
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 11, fill: T.muted }}
@@ -315,8 +317,8 @@ export const TopClientsChart: React.FC<TopClientsChartProps> = ({
           width={45}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Bar 
-          dataKey="revenue" 
+        <Bar
+          dataKey="revenue"
           name="Revenue"
           fill={T.accent}
           radius={[4, 4, 0, 0]}
@@ -378,14 +380,14 @@ export const MonthlyComparisonChart: React.FC<MonthlyComparisonChartProps> = ({
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.border} />
-        <XAxis 
-          dataKey="month" 
+        <XAxis
+          dataKey="month"
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 11, fill: T.muted }}
           dy={10}
         />
-        <YAxis 
+        <YAxis
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 11, fill: T.muted }}
@@ -393,24 +395,24 @@ export const MonthlyComparisonChart: React.FC<MonthlyComparisonChartProps> = ({
           width={45}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Legend 
+        <Legend
           wrapperStyle={{ fontSize: '11px', color: T.muted }}
           iconType="circle"
         />
-        <Line 
-          type="monotone" 
-          dataKey="current" 
+        <Line
+          type="monotone"
+          dataKey="current"
           name="Current Period"
-          stroke={T.accent} 
+          stroke={T.accent}
           strokeWidth={2.5}
           dot={{ fill: T.accent, r: 4 }}
           activeDot={{ r: 6 }}
         />
-        <Line 
-          type="monotone" 
-          dataKey="previous" 
+        <Line
+          type="monotone"
+          dataKey="previous"
           name="Previous Period"
-          stroke={T.muted} 
+          stroke={T.muted}
           strokeWidth={2}
           strokeDasharray="5 5"
           dot={{ fill: T.muted, r: 4 }}

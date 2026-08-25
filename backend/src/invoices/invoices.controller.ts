@@ -22,7 +22,7 @@ import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 @Controller('invoices')
 @UseGuards(JwtAuthGuard)
 export class InvoicesController {
-  constructor(private readonly invoicesService: InvoicesService) {}
+  constructor(private readonly invoicesService: InvoicesService) { }
 
   /** GET /api/invoices?search=&clientId= */
   @Get()
@@ -41,7 +41,17 @@ export class InvoicesController {
     @Param('id') id: string,
   ) {
     const invoice = await this.invoicesService.findOne(String(user._id), id);
-    return { invoice: invoice.toJSON() };
+    const invoiceData = invoice.toJSON();
+    // Normalize _id → id for frontend consistency
+    return {
+      invoice: {
+        ...invoiceData,
+        id: String(invoiceData._id),
+        clientId: invoiceData.clientId ? String(invoiceData.clientId) : undefined,
+        projectId: invoiceData.projectId ? String(invoiceData.projectId) : undefined,
+        _id: undefined,
+      }
+    };
   }
 
   /** POST /api/invoices */

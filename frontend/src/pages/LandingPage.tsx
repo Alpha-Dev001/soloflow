@@ -399,7 +399,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* Starter — card */}
           <div
             className="pricing-card-light rounded-2xl border p-8 flex flex-col relative overflow-hidden texture-light transition-colors duration-200"
-            style={{ backgroundColor: T.surface, borderColor: T.border, boxShadow: '0 1px 2px rgba(74,59,50,0.03)' }}
+            style={{ backgroundColor: '#F5F2EE', borderColor: T.border, boxShadow: '0 1px 2px rgba(74,59,50,0.03)' }}
           >
             <div className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: T.accent }}>Starter</div>
             <div className="flex items-baseline gap-1 mb-2">
@@ -590,10 +590,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         }
         .nav-link:hover::after {
           transform: scaleX(1);
-        }
-        .pricing-card-light:hover {
-          background-color: #F5F2EE !important;
-          border-color: ${T.borderStrong} !important;
         }
         .pricing-card-dark:hover {
           background-color: #4E3F32 !important;
