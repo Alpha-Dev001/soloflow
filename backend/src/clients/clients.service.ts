@@ -9,12 +9,15 @@ import { Client, ClientDocument } from './client.schema';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { ActivitiesService } from '../activities/activities.service';
+import { EntitlementsService } from '../entitlements/entitlements.service';
+import { UserDocument } from '../users/user.schema';
 
 @Injectable()
 export class ClientsService {
   constructor(
     @InjectModel(Client.name) private readonly clientModel: Model<ClientDocument>,
     private readonly activitiesService: ActivitiesService,
+    private readonly entitlements: EntitlementsService,
   ) { }
 
   /**
@@ -114,14 +117,35 @@ export class ClientsService {
     return client;
   }
 
-  async create(userId: string, dto: CreateClientDto): Promise<ClientDocument> {
+  /** Active clients consume Starter quota (Active + Lead). */
+  async countActiveClients(userId: string): Promise<number> {
+    return this.clientModel
+      .countDocuments({
+        userId: new Types.ObjectId(userId),
+        status: { $in: ['Active', 'Lead'] },
+      })
+      .exec();
+  }
+
+  async create(
+    user: UserDocument,
+    dto: CreateClientDto,
+  ): Promise<ClientDocument> {
+    const userId = String(user._id);
+    const status = dto.status || 'Active';
+    if (status === 'Active' || status === 'Lead') {
+      const current = await this.countActiveClients(userId);
+      this.entitlements.assertWithinLimit(user, 'activeClients', current);
+    } else {
+      this.entitlements.assertAccountActive(user);
+    }
+
     const client = new this.clientModel({
       ...dto,
       userId: new Types.ObjectId(userId),
     });
     const saved = await client.save();
 
-    // Log activity
     await this.activitiesService.log({
       userId,
       type: 'client_added',

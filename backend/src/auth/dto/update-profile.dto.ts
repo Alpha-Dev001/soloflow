@@ -1,5 +1,40 @@
-import { IsEmail, IsString, IsOptional } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  IsObject,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
+class BankDetailsDto {
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  accountHolder?: string;
+
+  @IsOptional()
+  @IsString()
+  routingNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  accountNumber?: string;
+}
+
+class AiSettingsDto {
+  @IsOptional()
+  @IsString()
+  defaultTone?: string;
+}
+
+/**
+ * Profile updates — deliberately excludes plan, role, subscriptionStatus,
+ * and accountStatus. Those are server-controlled only.
+ */
 export class UpdateProfileDto {
   @IsOptional()
   @IsString()
@@ -22,19 +57,14 @@ export class UpdateProfileDto {
   currency?: string;
 
   @IsOptional()
-  @IsString()
-  plan?: string;
+  @IsObject()
+  @ValidateNested()
+  @Type(() => BankDetailsDto)
+  bankDetails?: BankDetailsDto;
 
   @IsOptional()
-  bankDetails?: {
-    bankName?: string;
-    accountHolder?: string;
-    routingNumber?: string;
-    accountNumber?: string;
-  };
-
-  @IsOptional()
-  aiSettings?: {
-    defaultTone?: string;
-  };
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AiSettingsDto)
+  aiSettings?: AiSettingsDto;
 }

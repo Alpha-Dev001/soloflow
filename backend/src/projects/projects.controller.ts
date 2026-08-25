@@ -50,7 +50,7 @@ export class ProjectsController {
     @CurrentUser() user: UserDocument,
     @Body() dto: CreateProjectDto,
   ) {
-    return this.projectsService.create(String(user._id), dto);
+    return this.projectsService.create(user, dto);
   }
 
   /** PUT /api/projects/:id */

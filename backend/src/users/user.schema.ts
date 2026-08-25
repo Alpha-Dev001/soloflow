@@ -23,13 +23,29 @@ export class User {
   @Prop({ default: 'USD' })
   currency: string;
 
+  /** Platform role — independent of subscription plan. */
+  @Prop({ enum: ['USER', 'ADMIN'], default: 'USER' })
+  role: string;
+
+  /**
+   * Billing plan mirror of the active Subscription.
+   * 'free' = Starter, 'pro' = Pro. Never trust client-supplied values.
+   */
   @Prop({ enum: ['free', 'pro'], default: 'free' })
   plan: string;
+
+  @Prop({
+    enum: ['none', 'active', 'canceled', 'expired', 'pending'],
+    default: 'active',
+  })
+  subscriptionStatus: string;
+
+  @Prop({ enum: ['active', 'suspended'], default: 'active' })
+  accountStatus: string;
 
   @Prop()
   avatarUrl?: string;
 
-  // Banking details (for invoice PDFs)
   @Prop({
     type: {
       bankName: String,
@@ -46,7 +62,6 @@ export class User {
     accountNumber?: string;
   };
 
-  // AI configuration
   @Prop({
     type: { defaultTone: String },
     default: { defaultTone: 'Professional' },
@@ -58,7 +73,6 @@ export class User {
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-// Virtual `id` field (returns string representation of _id)
 UserSchema.virtual('id').get(function () {
   return this._id.toHexString();
 });
@@ -68,7 +82,7 @@ UserSchema.set('toJSON', {
   transform: (_doc, ret) => {
     delete ret._id;
     delete ret.__v;
-    delete ret.passwordHash; // Never expose password hash
+    delete ret.passwordHash;
     return ret;
   },
 });

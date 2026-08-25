@@ -257,7 +257,7 @@ export class ClientsController {
     @CurrentUser() user: UserDocument,
     @Body() dto: CreateClientDto,
   ) {
-    const client = await this.clientsService.create(String(user._id), dto);
+    const client = await this.clientsService.create(user, dto);
     // Include computed fields (0 for a brand-new client) so the frontend
     // optimistic update can render the row without a separate GET call.
     return {

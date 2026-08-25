@@ -50,7 +50,7 @@ export class InvoicesController {
     @CurrentUser() user: UserDocument,
     @Body() dto: CreateInvoiceDto,
   ) {
-    return this.invoicesService.create(String(user._id), dto);
+    return this.invoicesService.create(user, dto);
   }
 
   /** PUT /api/invoices/:id */

@@ -33,11 +33,12 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-  /** GET /api/auth/me — requires valid JWT */
+  /** GET /api/auth/me — requires valid JWT; includes server-side entitlements */
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() user: UserDocument) {
-    return { user: user.toJSON() };
+    const profile = await this.authService.getProfile(String(user._id));
+    return { user: profile };
   }
 
   /** PUT /api/auth/profile — requires valid JWT */

@@ -136,7 +136,13 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error((err as any).message || 'Failed to create client');
+      const e = new Error((err as any).message || 'Failed to create client') as Error & {
+        code?: string;
+        upgradeRequired?: boolean;
+      };
+      e.code = (err as any).code;
+      e.upgradeRequired = (err as any).upgradeRequired;
+      throw e;
     }
     return res.json();
   },
@@ -180,7 +186,13 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error((err as any).message || 'Failed to create project');
+      const e = new Error((err as any).message || 'Failed to create project') as Error & {
+        code?: string;
+        upgradeRequired?: boolean;
+      };
+      e.code = (err as any).code;
+      e.upgradeRequired = (err as any).upgradeRequired;
+      throw e;
     }
     return res.json();
   },
@@ -323,7 +335,13 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error((err as any).message || 'Failed to create invoice');
+      const e = new Error((err as any).message || 'Failed to create invoice') as Error & {
+        code?: string;
+        upgradeRequired?: boolean;
+      };
+      e.code = (err as any).code;
+      e.upgradeRequired = (err as any).upgradeRequired;
+      throw e;
     }
     return res.json();
   },
@@ -361,11 +379,25 @@ export const api = {
     return { metrics: data.metrics || data };
   },
 
-  async getAnalytics(): Promise<{ analytics: AnalyticsData }> {
+  async getAnalytics(): Promise<{ analytics: AnalyticsData; locked?: boolean }> {
     const res = await apiFetch(`${API_BASE}/analytics`);
+    if (res.status === 403) {
+      const err = await res.json().catch(() => ({}));
+      return {
+        analytics: {
+          totalRevenue: 0,
+          avgProjectValue: 0,
+          proposalWinRate: 0,
+          collectionRate: 0,
+          monthlyRevenue: [],
+          topClientsRevenue: [],
+        },
+        locked: true,
+        ...(err as any),
+      } as any;
+    }
     if (!res.ok) throw new Error('Failed to fetch analytics data');
     const data = await res.json();
-    // Backend returns { analytics: { ... } } — unwrap it
     const raw = data.analytics || data;
     return {
       analytics: {
@@ -424,7 +456,135 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ message: prompt, context })
     });
-    if (!res.ok) throw new Error('Failed to send message to AI');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const e = new Error((err as any).message || 'Failed to send message to AI') as Error & {
+        code?: string;
+        upgradeRequired?: boolean;
+      };
+      e.code = (err as any).code;
+      e.upgradeRequired = (err as any).upgradeRequired;
+      throw e;
+    }
+    return res.json();
+  },
+
+  // ── Subscriptions ───────────────────────────────────────────────────────────
+
+  async getSubscription(): Promise<import('../types').SubscriptionInfo> {
+    const res = await apiFetch(`${API_BASE}/subscriptions/me`);
+    if (!res.ok) throw new Error('Failed to fetch subscription');
+    return res.json();
+  },
+
+  async createCheckout(simulate?: 'success' | 'failure'): Promise<{
+    sessionId: string;
+    provider: string;
+    status: string;
+    amountCents: number;
+    currency: string;
+    plan: string;
+    displayName: string;
+    priceMonthly: number;
+    benefits: string[];
+  }> {
+    const res = await apiFetch(`${API_BASE}/subscriptions/checkout`, {
+      method: 'POST',
+      body: JSON.stringify(simulate ? { simulate } : {}),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || 'Failed to start checkout');
+    }
+    return res.json();
+  },
+
+  async confirmCheckout(
+    sessionId: string,
+    simulate?: 'success' | 'failure',
+  ): Promise<{ success: boolean; user: User; message: string }> {
+    const res = await apiFetch(`${API_BASE}/subscriptions/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ sessionId, ...(simulate ? { simulate } : {}) }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const e = new Error((err as any).message || 'Payment failed') as Error & {
+        code?: string;
+      };
+      e.code = (err as any).code || 'PAYMENT_FAILED';
+      throw e;
+    }
+    return res.json();
+  },
+
+  // ── Admin ───────────────────────────────────────────────────────────────────
+
+  async getAdminStats(): Promise<any> {
+    const res = await apiFetch(`${API_BASE}/admin/stats`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || 'Admin access denied');
+    }
+    return res.json();
+  },
+
+  async getAdminUsers(params: {
+    search?: string;
+    plan?: string;
+    status?: string;
+    page?: number;
+  } = {}): Promise<any> {
+    const q = new URLSearchParams();
+    if (params.search) q.set('search', params.search);
+    if (params.plan) q.set('plan', params.plan);
+    if (params.status) q.set('status', params.status);
+    if (params.page) q.set('page', String(params.page));
+    const res = await apiFetch(`${API_BASE}/admin/users?${q.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || 'Admin access denied');
+    }
+    return res.json();
+  },
+
+  async adminGrantPro(userId: string, note?: string): Promise<any> {
+    const res = await apiFetch(`${API_BASE}/admin/users/${userId}/grant-pro`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || 'Failed to grant Pro');
+    }
+    return res.json();
+  },
+
+  async adminRevokePro(userId: string, note?: string): Promise<any> {
+    const res = await apiFetch(`${API_BASE}/admin/users/${userId}/revoke-pro`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || 'Failed to revoke Pro');
+    }
+    return res.json();
+  },
+
+  async adminSetAccountStatus(
+    userId: string,
+    accountStatus: 'active' | 'suspended',
+    note?: string,
+  ): Promise<any> {
+    const res = await apiFetch(`${API_BASE}/admin/users/${userId}/account-status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ accountStatus, note }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || 'Failed to update account');
+    }
     return res.json();
   },
 

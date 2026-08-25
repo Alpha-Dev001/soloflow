@@ -15,13 +15,17 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { AiModule } from './ai/ai.module';
 import { AiUsageModule } from './ai-usage/ai-usage.module';
+import { EntitlementsModule } from './entitlements/entitlements.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { PaymentsModule } from './payments/payments.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
     // Configuration — loads .env file
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: ['.env', '../.env'],
     }),
 
     // MongoDB connection
@@ -45,6 +49,12 @@ import { AiUsageModule } from './ai-usage/ai-usage.module';
         limit: 100,
       },
     ]),
+
+    // Cross-cutting
+    EntitlementsModule,
+    PaymentsModule,
+    SubscriptionsModule,
+    AdminModule,
 
     // Domain modules
     AuthModule,

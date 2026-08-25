@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, FilterQuery } from 'mongoose';
 import { User, UserDocument } from './user.schema';
 
 @Injectable()
@@ -18,7 +18,13 @@ export class UsersService {
   }
 
   async create(data: Partial<User>): Promise<UserDocument> {
-    const user = new this.userModel(data);
+    const user = new this.userModel({
+      role: 'USER',
+      plan: 'free',
+      subscriptionStatus: 'active',
+      accountStatus: 'active',
+      ...data,
+    });
     return user.save();
   }
 
@@ -28,5 +34,21 @@ export class UsersService {
       .exec();
     if (!user) throw new NotFoundException('User not found');
     return user;
+  }
+
+  async count(filter: FilterQuery<UserDocument> = {}): Promise<number> {
+    return this.userModel.countDocuments(filter).exec();
+  }
+
+  async findMany(
+    filter: FilterQuery<UserDocument>,
+    opts: { skip?: number; limit?: number; sort?: any } = {},
+  ): Promise<UserDocument[]> {
+    return this.userModel
+      .find(filter)
+      .sort(opts.sort || { createdAt: -1 })
+      .skip(opts.skip || 0)
+      .limit(opts.limit || 50)
+      .exec();
   }
 }

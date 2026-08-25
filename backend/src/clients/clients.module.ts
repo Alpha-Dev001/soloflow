@@ -4,6 +4,7 @@ import { Client, ClientSchema } from './client.schema';
 import { ClientsController } from './clients.controller';
 import { ClientsService } from './clients.service';
 import { ActivitiesModule } from '../activities/activities.module';
+import { EntitlementsModule } from '../entitlements/entitlements.module';
 // Forward references for the detail endpoint
 import { Project, ProjectSchema } from '../projects/project.schema';
 import { Proposal, ProposalSchema } from '../proposals/proposal.schema';
@@ -18,6 +19,7 @@ import { Invoice, InvoiceSchema } from '../invoices/invoice.schema';
       { name: Invoice.name, schema: InvoiceSchema },
     ]),
     ActivitiesModule,
+    EntitlementsModule,
   ],
   controllers: [ClientsController],
   providers: [ClientsService],

@@ -10,6 +10,10 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ActivitiesService } from '../activities/activities.service';
 import { Client } from '../clients/client.schema';
+import { EntitlementsService } from '../entitlements/entitlements.service';
+import { UserDocument } from '../users/user.schema';
+
+const ACTIVE_PROJECT_STATUSES = ['To Do', 'In Progress', 'On Hold'];
 
 /** Parse a date that may be ISO ("2024-06-15") or human-readable ("Jun 15, 2024") */
 function parseDate(input: string): Date {
@@ -27,7 +31,17 @@ export class ProjectsService {
     @InjectModel(Project.name) private readonly projectModel: Model<ProjectDocument>,
     @InjectModel(Client.name) private readonly clientModel: Model<any>,
     private readonly activitiesService: ActivitiesService,
+    private readonly entitlements: EntitlementsService,
   ) { }
+
+  async countActiveProjects(userId: string): Promise<number> {
+    return this.projectModel
+      .countDocuments({
+        userId: new Types.ObjectId(userId),
+        status: { $in: ACTIVE_PROJECT_STATUSES },
+      })
+      .exec();
+  }
 
   /** Verify that the client exists and belongs to the authenticated user */
   async validateClient(userId: string, clientId: string): Promise<any> {
@@ -147,8 +161,17 @@ export class ProjectsService {
     };
   }
 
-  async create(userId: string, dto: CreateProjectDto): Promise<any> {
+  async create(user: UserDocument, dto: CreateProjectDto): Promise<any> {
+    const userId = String(user._id);
     const client = await this.validateClient(userId, dto.clientId);
+    const status = dto.status || 'To Do';
+
+    if (ACTIVE_PROJECT_STATUSES.includes(status)) {
+      const current = await this.countActiveProjects(userId);
+      this.entitlements.assertWithinLimit(user, 'activeProjects', current);
+    } else {
+      this.entitlements.assertAccountActive(user);
+    }
 
     const project = new this.projectModel({
       userId: new Types.ObjectId(userId),
@@ -157,7 +180,7 @@ export class ProjectsService {
       description: dto.description || '',
       budget: dto.budget || 0,
       priority: dto.priority || 'Medium',
-      status: dto.status || 'To Do',
+      status,
       deadline: parseDate(dto.deadline),
       startDate: dto.startDate ? parseDate(dto.startDate) : undefined,
       tags: dto.tags || [],

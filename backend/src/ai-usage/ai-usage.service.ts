@@ -4,6 +4,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AiUsage, AiUsageDocument } from './ai-usage.schema';
 import { UserDocument } from '../users/user.schema';
+import { EntitlementsService } from '../entitlements/entitlements.service';
+import { PLAN_DEFINITIONS } from '../entitlements/plan.constants';
 
 export type PlanType = 'STARTER' | 'PRO';
 
@@ -20,8 +22,6 @@ export interface ReservationResult {
   usage: AiUsageInfo;
 }
 
-const DEFAULT_STARTER_LIMIT = 3;
-const DEFAULT_PRO_LIMIT = 20;
 const DEFAULT_TIMEZONE = 'UTC';
 
 @Injectable()
@@ -31,31 +31,31 @@ export class AiUsageService {
   constructor(
     @InjectModel(AiUsage.name) private readonly model: Model<AiUsageDocument>,
     private readonly configService: ConfigService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
-  /** Map the stored DB `plan` field (free|pro) to a billing tier. */
+  /** Map effective entitlements plan to AI billing tier. */
   derivePlan(user: UserDocument): PlanType {
-    return user?.plan === 'pro' ? 'PRO' : 'STARTER';
+    return this.entitlements.resolveEffectivePlan(user) === 'pro'
+      ? 'PRO'
+      : 'STARTER';
   }
 
-  /** Configurable daily generation limit for a plan (env, with safe defaults). */
+  /** Configurable daily generation limit for a plan (env overrides plan defaults). */
   getLimit(plan: PlanType): number {
+    const planDefaults =
+      plan === 'PRO'
+        ? PLAN_DEFINITIONS.pro.limits.aiProposalsPerDay
+        : PLAN_DEFINITIONS.free.limits.aiProposalsPerDay;
     const configured =
       plan === 'PRO'
-        ? this.configService.get<number>(
-            'PRO_AI_PROPOSAL_LIMIT',
-            DEFAULT_PRO_LIMIT,
-          )
+        ? this.configService.get<number>('PRO_AI_PROPOSAL_LIMIT', planDefaults)
         : this.configService.get<number>(
             'STARTER_AI_PROPOSAL_LIMIT',
-            DEFAULT_STARTER_LIMIT,
+            planDefaults,
           );
     const num = Number(configured);
-    return Number.isInteger(num) && num > 0
-      ? num
-      : plan === 'PRO'
-        ? DEFAULT_PRO_LIMIT
-        : DEFAULT_STARTER_LIMIT;
+    return Number.isInteger(num) && num > 0 ? num : planDefaults;
   }
 
     /** Configured timezone for daily boundaries (defaults to UTC). */

@@ -10,7 +10,9 @@ import {
   BarChart3,
   Sparkles,
   LogOut,
-  Globe
+  Globe,
+  Shield,
+  Crown
 } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
 import { Logo } from '../ui/Logo';
@@ -35,7 +37,8 @@ export type NavPage =
   | 'calendar'
   | 'analytics'
   | 'ai-assistant'
-  | 'settings';
+  | 'settings'
+  | 'admin';
 
 interface NavItem {
   id: NavPage;
@@ -48,6 +51,7 @@ interface SidebarProps {
   onNavigate: (page: NavPage, param?: string) => void;
   user: User | null;
   onLogout?: () => void;
+  onUpgrade?: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
   isCollapsed?: boolean;
@@ -58,6 +62,7 @@ export const Sidebar: FC<SidebarProps> = ({
   onNavigate,
   user,
   onLogout,
+  onUpgrade,
   isMobileOpen,
   onCloseMobile,
   isCollapsed = false
@@ -74,6 +79,9 @@ export const Sidebar: FC<SidebarProps> = ({
     { id: 'ai-assistant', label: 'AI Assistant', icon: <Sparkles className="w-4 h-4" /> }
   ];
 
+  const isPro = user?.entitlements?.isPro || user?.plan === 'pro';
+  const canUpgrade = user?.entitlements?.canUpgrade ?? (!isPro && user?.role !== 'ADMIN');
+  const isAdmin = user?.role === 'ADMIN';
   const isCurrent = (id: NavPage) => {
     if (currentPage === id) return true;
     if (id === 'clients' && currentPage === 'client-detail') return true;
@@ -287,7 +295,55 @@ export const Sidebar: FC<SidebarProps> = ({
         </div>
 
         {/* Bottom Section */}
-        <div className="p-3 relative z-10">
+        <div className="p-3 relative z-10 space-y-2">
+          {!isCollapsed && (
+            <div
+              className="mx-1 rounded-xl px-3 py-2.5"
+              style={{ background: 'rgba(255,255,255,0.08)' }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/55">
+                  Plan
+                </span>
+                <span
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                    isPro ? 'bg-[#FBEED9] text-[#3E342B]' : 'bg-white/15 text-white/85'
+                  }`}
+                >
+                  {isPro ? 'Pro' : 'Starter'}
+                </span>
+              </div>
+              {canUpgrade && onUpgrade && (
+                <button
+                  onClick={() => {
+                    onUpgrade();
+                    onCloseMobile?.();
+                  }}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold py-1.5 rounded-lg cursor-pointer transition-colors"
+                  style={{ background: 'linear-gradient(135deg, #FBEED9 0%, #E9DCC8 100%)', color: '#3E342B' }}
+                >
+                  <Crown className="w-3 h-3" />
+                  Upgrade to Pro
+                </button>
+              )}
+            </div>
+          )}
+
+          {isAdmin && (
+            <button
+              onClick={() => {
+                onNavigate('admin');
+                onCloseMobile?.();
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium cursor-pointer ${
+                currentPage === 'admin' ? 'text-white bg-white/15' : 'text-white/75 hover:bg-white/10'
+              } ${isCollapsed ? 'justify-center' : ''}`}
+            >
+              <Shield className="w-4 h-4" />
+              {!isCollapsed && <span>Admin</span>}
+            </button>
+          )}
+
           {/* User Profile */}
           <div
             className="pt-3 flex items-center justify-between px-1"

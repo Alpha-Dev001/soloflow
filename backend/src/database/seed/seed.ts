@@ -18,6 +18,7 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const MONGODB_URI =
   process.env.MONGODB_URI || 'mongodb://localhost:27017/soloflow';
@@ -54,7 +55,7 @@ async function seed() {
     console.log('🗑  Removed previous seed data');
   }
 
-  // ── Demo User ──
+  // ── Demo User (Pro freelancer) ──
   const passwordHash = await bcrypt.hash('demo123', 12);
   const userResult = await users.insertOne({
     name: 'Demo User',
@@ -62,12 +63,52 @@ async function seed() {
     passwordHash,
     businessName: 'Demo Design Studio',
     currency: 'USD',
+    role: 'USER',
     plan: 'pro',
+    subscriptionStatus: 'active',
+    accountStatus: 'active',
     createdAt: new Date(),
     updatedAt: new Date(),
   });
   const userId = userResult.insertedId;
-  console.log('👤 Created demo user: demo@soloflow.com / demo123');
+  console.log('👤 Created demo user: demo@soloflow.com / demo123 (Pro)');
+
+  // ── Admin User (platform owner) ──
+  const adminHash = await bcrypt.hash('admin123', 12);
+  const existingAdmin = await users.findOne({ email: 'admin@soloflow.com' });
+  if (existingAdmin) {
+    await users.deleteOne({ _id: existingAdmin._id });
+  }
+  await users.insertOne({
+    name: 'SoloFlow Admin',
+    email: 'admin@soloflow.com',
+    passwordHash: adminHash,
+    businessName: 'SoloFlow',
+    currency: 'USD',
+    role: 'ADMIN',
+    plan: 'pro',
+    subscriptionStatus: 'active',
+    accountStatus: 'active',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  console.log('🛡  Created admin user: admin@soloflow.com / admin123');
+
+  // Starter subscription for demo is Pro
+  const subscriptions = db.collection('subscriptions');
+  await subscriptions.deleteMany({ userId });
+  await subscriptions.insertOne({
+    userId,
+    plan: 'pro',
+    status: 'active',
+    startedAt: new Date(),
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    provider: 'seed',
+    providerReference: 'demo_pro',
+    previousPlan: 'free',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
 
   // ── Clients ──
   const now = new Date();

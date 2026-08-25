@@ -8,7 +8,8 @@ import {
   Save,
   RotateCcw,
   CheckCircle2,
-  Lock
+  Lock,
+  Crown
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -20,15 +21,17 @@ interface SettingsPageProps {
   user: User | null;
   onUpdateProfile: (data: Partial<User>) => Promise<void>;
   onResetDemo: () => Promise<void>;
+  onUpgrade?: () => void;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({
   user,
   onUpdateProfile,
-  onResetDemo
+  onResetDemo,
+  onUpgrade
 }) => {
   const { showToast } = useToast();
-  const [activeSection, setActiveSection] = useState<'profile' | 'billing' | 'ai' | 'security'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'plan' | 'billing' | 'ai' | 'security'>('profile');
 
   // Form states
   const [name, setName] = useState(user?.name || '');
@@ -71,6 +74,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <div className="md:col-span-3 space-y-1">
           {[
             { id: 'profile', label: 'Business Profile', icon: UserIcon },
+            { id: 'plan', label: 'Subscription', icon: Crown },
             { id: 'billing', label: 'Invoicing & Payouts', icon: CreditCard },
             { id: 'ai', label: 'AI Assistant', icon: Sparkles },
             { id: 'security', label: 'System & Demo Data', icon: Shield }
@@ -94,6 +98,37 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
         {/* Content Area */}
         <div className="md:col-span-9">
+          {activeSection === 'plan' && (
+            <Card padding="md" className="space-y-4">
+              <h3 className="font-semibold text-xs text-[#1A1918] pb-2 border-b border-[#EDE8E1]">
+                Subscription
+              </h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-[#1A1918]">
+                  {user?.entitlements?.displayName || (user?.plan === 'pro' ? 'Pro' : 'Starter')}
+                </span>
+                <span className="text-xs text-[#8C8278] capitalize">
+                  {user?.subscriptionStatus || 'active'}
+                </span>
+                {(user?.entitlements?.isPro || user?.plan === 'pro') && (
+                  <span className="text-[10px] font-bold uppercase tracking-wide bg-[#1A1918] text-white px-2 py-0.5 rounded">
+                    Pro
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[#6B6158]">
+                {(user?.entitlements?.isPro || user?.plan === 'pro')
+                  ? `Pro · $${user?.entitlements?.priceMonthly ?? 19}/month. Full feature access.`
+                  : 'Starter is free forever with plan limits. Upgrade to Pro for unlimited resources and premium AI.'}
+              </p>
+              {!(user?.entitlements?.isPro || user?.plan === 'pro') && onUpgrade && (
+                <Button size="sm" onClick={onUpgrade} icon={<Crown className="w-3.5 h-3.5" />}>
+                  Upgrade to Pro — $19/mo
+                </Button>
+              )}
+            </Card>
+          )}
+
           {activeSection === 'profile' && (
             <Card padding="md" className="space-y-3.5">
               <h3 className="font-semibold text-xs text-[#1A1918] pb-2 border-b border-[#EDE8E1]">

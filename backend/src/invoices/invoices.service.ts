@@ -10,6 +10,8 @@ import { Client } from '../clients/client.schema';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { ActivitiesService } from '../activities/activities.service';
+import { EntitlementsService } from '../entitlements/entitlements.service';
+import { UserDocument } from '../users/user.schema';
 
 function parseDate(input: string): Date {
   if (!input) return new Date();
@@ -32,6 +34,7 @@ export class InvoicesService {
     @InjectModel(Invoice.name) private readonly invoiceModel: Model<InvoiceDocument>,
     @InjectModel(Client.name) private readonly clientModel: Model<any>,
     private readonly activitiesService: ActivitiesService,
+    private readonly entitlements: EntitlementsService,
   ) { }
 
   /** Verify that the client exists and belongs to the authenticated user */
@@ -159,7 +162,24 @@ export class InvoicesService {
     };
   }
 
-  async create(userId: string, dto: CreateInvoiceDto): Promise<any> {
+  /** Invoices created in the current calendar month (UTC). */
+  async countInvoicesThisMonth(userId: string): Promise<number> {
+    const now = new Date();
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    return this.invoiceModel
+      .countDocuments({
+        userId: new Types.ObjectId(userId),
+        createdAt: { $gte: start, $lt: end },
+      })
+      .exec();
+  }
+
+  async create(user: UserDocument, dto: CreateInvoiceDto): Promise<any> {
+    const userId = String(user._id);
+    const current = await this.countInvoicesThisMonth(userId);
+    this.entitlements.assertWithinLimit(user, 'invoicesPerMonth', current);
+
     const client = await this.validateClient(userId, dto.clientId);
     const invoiceNumber = await this.generateInvoiceNumber(userId);
 

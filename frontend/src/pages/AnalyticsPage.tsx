@@ -13,6 +13,8 @@ interface AnalyticsPageProps {
   invoices?: Invoice[];
   proposals?: Proposal[];
   isLoading?: boolean;
+  locked?: boolean;
+  onUpgrade?: () => void;
 }
 
 /* ── Design tokens (matched to landing & auth pages) ── */
@@ -36,9 +38,28 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
   projects = [],
   invoices = [],
   proposals = [],
-  isLoading = false
+  isLoading = false,
+  locked = false,
+  onUpgrade
 }) => {
   const { showToast } = useToast();
+
+  if (locked) {
+    return (
+      <div className="max-w-lg mx-auto py-16 text-center space-y-4">
+        <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'rgba(147,122,98,0.12)' }}>
+          <BarChart2 className="w-6 h-6" style={{ color: T.accent }} />
+        </div>
+        <h1 className="text-xl font-semibold" style={{ color: T.ink }}>Analytics is a Pro feature</h1>
+        <p className="text-sm" style={{ color: T.body }}>
+          Upgrade to Pro to unlock financial analytics, win-rate metrics, and revenue reports.
+        </p>
+        {onUpgrade && (
+          <Button onClick={onUpgrade}>Upgrade to Pro</Button>
+        )}
+      </div>
+    );
+  }
 
   /* ── Real data derived from workspace entities ── */
   const totalRevenue = useMemo(

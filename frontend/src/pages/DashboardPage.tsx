@@ -34,6 +34,8 @@ interface DashboardPageProps {
   isLoading?: boolean;
   onNavigate: (page: NavPage, param?: string) => void;
   onOpenQuickCreate?: (type: 'client' | 'project' | 'proposal' | 'invoice') => void;
+  onUpgrade?: () => void;
+  subscriptionUsage?: import('../types').SubscriptionInfo['usage'] | null;
 }
 
 /* ── Design tokens (matched to landing & auth pages) ── */
@@ -65,7 +67,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   proposals,
   isLoading = false,
   onNavigate,
-  onOpenQuickCreate
+  onOpenQuickCreate,
+  onUpgrade,
+  subscriptionUsage
 }) => {
   const [showNewMenu, setShowNewMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
@@ -471,6 +475,82 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           )}
         </div>
       </div>
+
+      {/* ══ Plan & usage (from backend entitlements) ══ */}
+      {user && (
+        <Card className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: T.muted }}>
+                  Your plan
+                </span>
+                <span
+                  className="text-[11px] font-bold px-2 py-0.5 rounded-md"
+                  style={
+                    user.entitlements?.isPro || user.plan === 'pro'
+                      ? { background: T.dark, color: '#fff' }
+                      : { background: T.border, color: T.body }
+                  }
+                >
+                  {user.entitlements?.displayName ||
+                    (user.plan === 'pro' ? 'Pro' : 'Starter')}
+                </span>
+                {user.subscriptionStatus && (
+                  <span className="text-[11px] capitalize" style={{ color: T.muted }}>
+                    · {user.subscriptionStatus}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm mt-1.5" style={{ color: T.body }}>
+                {user.entitlements?.isPro || user.plan === 'pro'
+                  ? 'Unlimited resources, advanced analytics, and full AI assistant.'
+                  : 'Starter limits apply. Upgrade anytime to unlock Pro.'}
+              </p>
+              {subscriptionUsage && !(user.entitlements?.isPro || user.plan === 'pro') && (
+                <div className="mt-3 flex flex-wrap gap-3 text-xs" style={{ color: T.muted }}>
+                  <span>
+                    Clients {subscriptionUsage.activeClients.used}/
+                    {subscriptionUsage.activeClients.unlimited
+                      ? '∞'
+                      : subscriptionUsage.activeClients.limit}
+                  </span>
+                  <span>
+                    Projects {subscriptionUsage.activeProjects.used}/
+                    {subscriptionUsage.activeProjects.unlimited
+                      ? '∞'
+                      : subscriptionUsage.activeProjects.limit}
+                  </span>
+                  <span>
+                    Invoices {subscriptionUsage.invoicesThisMonth.used}/
+                    {subscriptionUsage.invoicesThisMonth.unlimited
+                      ? '∞'
+                      : subscriptionUsage.invoicesThisMonth.limit}
+                    /mo
+                  </span>
+                  <span>
+                    AI {subscriptionUsage.aiProposalsToday.remaining}/
+                    {subscriptionUsage.aiProposalsToday.limit} left today
+                  </span>
+                </div>
+              )}
+              {(user.entitlements?.isPro || user.plan === 'pro') &&
+                subscriptionUsage?.aiProposalsToday && (
+                  <p className="mt-2 text-xs" style={{ color: T.muted }}>
+                    AI proposals today:{' '}
+                    {subscriptionUsage.aiProposalsToday.used}/
+                    {subscriptionUsage.aiProposalsToday.limit} used
+                  </p>
+                )}
+            </div>
+            {!(user.entitlements?.isPro || user.plan === 'pro') && onUpgrade && (
+              <Button size="sm" onClick={onUpgrade} icon={<Sparkles className="w-3.5 h-3.5" />}>
+                Upgrade to Pro
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* ══ KPI Cards — actionable metrics ══ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

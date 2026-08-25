@@ -28,6 +28,7 @@ interface AIAssistantPageProps {
   analytics?: AnalyticsData | null;
   onNavigate: (page: NavPage, param?: string) => void;
   onCreateProposal?: (proposal: Partial<Proposal>) => Promise<any>;
+  onUpgrade?: () => void;
 }
 
 interface ChatMessage {
@@ -58,9 +59,11 @@ export const AIAssistantPage: React.FC<AIAssistantPageProps> = ({
   projects,
   proposals,
   invoices,
-  analytics
+  analytics,
+  onUpgrade
 }) => {
   const { showToast } = useToast();
+  const isPro = user?.entitlements?.isPro || user?.plan === 'pro';
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -163,6 +166,12 @@ How can I help with client proposals, invoices, or pricing strategy?`,
       setMessages(prev => [...prev, aiMsg]);
     } catch (err: any) {
       console.error(err);
+      if (err?.upgradeRequired || err?.code === 'PRO_REQUIRED') {
+        showToast('This feature is available on Pro. Upgrade to unlock it.', 'info');
+        onUpgrade?.();
+        setIsLoading(false);
+        return;
+      }
       const fallbackMsg: ChatMessage = {
         id: `ai-err-${Date.now()}`,
         sender: 'ai',
@@ -196,6 +205,23 @@ How can I help with client proposals, invoices, or pricing strategy?`,
     ]);
     showToast('Chat history cleared', 'success');
   };
+
+  if (!isPro) {
+    return (
+      <div className="max-w-lg mx-auto py-16 text-center space-y-4">
+        <div className="mx-auto w-12 h-12 rounded-full bg-[#F5EFEB] flex items-center justify-center">
+          <Sparkles className="w-6 h-6 text-[#82694E]" />
+        </div>
+        <h1 className="text-xl font-semibold text-[#1A1918]">AI Assistant is available on Pro</h1>
+        <p className="text-sm text-[#6B6158]">
+          Upgrade to Pro to unlock rate advice, scope guidance, and the full AI Business Assistant.
+        </p>
+        {onUpgrade && (
+          <Button onClick={onUpgrade}>Upgrade to Pro</Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto">

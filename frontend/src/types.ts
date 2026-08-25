@@ -7,6 +7,85 @@ export interface User {
   company?: string;
   currency: string;
   plan?: 'free' | 'pro';
+  role?: 'USER' | 'ADMIN';
+  subscriptionStatus?: 'none' | 'active' | 'canceled' | 'expired' | 'pending';
+  accountStatus?: 'active' | 'suspended';
+  entitlements?: Entitlements;
+}
+
+export interface Entitlements {
+  plan: 'free' | 'pro';
+  planLabel: 'STARTER' | 'PRO';
+  displayName: string;
+  priceMonthly: number;
+  subscriptionStatus: string;
+  accountStatus: string;
+  role: string;
+  features: {
+    AI_ASSISTANT: boolean;
+    ADVANCED_ANALYTICS: boolean;
+    FULL_CALENDAR: boolean;
+    AI_PROPOSAL: boolean;
+  };
+  limits: {
+    activeClients: number;
+    activeProjects: number;
+    invoicesPerMonth: number;
+    aiProposalsPerDay: number;
+  };
+  benefits: string[];
+  isPro: boolean;
+  canUpgrade: boolean;
+}
+
+export interface PlanUsageBucket {
+  used: number;
+  limit: number;
+  unlimited: boolean;
+}
+
+export interface SubscriptionInfo {
+  user: User;
+  subscription: {
+    id: string;
+    plan: string;
+    status: string;
+    startedAt?: string;
+    expiresAt?: string;
+    provider?: string;
+  } | null;
+  entitlements: Entitlements;
+  usage: {
+    activeClients: PlanUsageBucket;
+    activeProjects: PlanUsageBucket;
+    invoicesThisMonth: PlanUsageBucket;
+    aiProposalsToday: AiUsage;
+  };
+  plans: {
+    starter: PlanDefinition;
+    pro: PlanDefinition;
+  };
+}
+
+export interface PlanDefinition {
+  id: string;
+  label: string;
+  displayName: string;
+  priceMonthly: number;
+  currency: string;
+  limits: Entitlements['limits'];
+  features: Entitlements['features'];
+  benefits: string[];
+}
+
+export interface ApiErrorBody {
+  message?: string;
+  code?: string;
+  upgradeRequired?: boolean;
+  feature?: string;
+  limit?: number;
+  used?: number;
+  resource?: string;
 }
 
 export interface Client {

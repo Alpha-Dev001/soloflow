@@ -5,6 +5,7 @@ import { InvoicesController } from './invoices.controller';
 import { InvoicesService } from './invoices.service';
 import { ActivitiesModule } from '../activities/activities.module';
 import { Client, ClientSchema } from '../clients/client.schema';
+import { EntitlementsModule } from '../entitlements/entitlements.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { Client, ClientSchema } from '../clients/client.schema';
       { name: Client.name, schema: ClientSchema },
     ]),
     ActivitiesModule,
+    EntitlementsModule,
   ],
   controllers: [InvoicesController],
   providers: [InvoicesService],

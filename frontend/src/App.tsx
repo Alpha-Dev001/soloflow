@@ -35,7 +35,9 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AIAssistantPage } from './pages/AIAssistantPage';
+import { AdminPage } from './pages/AdminPage';
 import { ToastProvider, useToast } from './components/ui/Toast';
+import { UpgradeCheckoutModal } from './components/ui/UpgradeCheckoutModal';
 import { api } from './services/api';
 import type {
     User,
@@ -45,7 +47,8 @@ import type {
     Proposal,
     Invoice,
     AnalyticsData,
-    CalendarEvent
+    CalendarEvent,
+    SubscriptionInfo
 } from './types';
 
 function getNavPage(pathname: string): NavPage {
@@ -64,6 +67,7 @@ function getNavPage(pathname: string): NavPage {
     if (pathname === '/analytics') return 'analytics';
     if (pathname === '/ai-assistant') return 'ai-assistant';
     if (pathname === '/settings') return 'settings';
+    if (pathname === '/admin') return 'admin';
     return 'landing';
 }
 
@@ -140,6 +144,9 @@ function AppContent() {
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [subscriptionUsage, setSubscriptionUsage] = useState<SubscriptionInfo['usage'] | null>(null);
+    const [showUpgrade, setShowUpgrade] = useState(false);
+    const [analyticsLocked, setAnalyticsLocked] = useState(false);
 
     // New accounts go through onboarding before reaching the dashboard
     const [onboarded, setOnboarded] = useState<boolean>(() => {
@@ -150,6 +157,33 @@ function AppContent() {
         }
     });
 
+    const persistUser = useCallback((authUser: User) => {
+        setUser(authUser);
+        try {
+            localStorage.setItem('soloflow_user', JSON.stringify(authUser));
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    const refreshSubscription = useCallback(async () => {
+        try {
+            const info = await api.getSubscription();
+            setSubscriptionUsage(info.usage);
+            if (info.user) persistUser(info.user);
+        } catch (e) {
+            console.error('Failed to load subscription', e);
+        }
+    }, [persistUser]);
+
+    const toastPlanError = (e: unknown, fallback: string) => {
+        const err = e as any;
+        const msg = typeof err?.message === 'string' ? err.message : fallback;
+        showToast(msg, err?.upgradeRequired || msg.includes('Upgrade') ? 'info' : 'error');
+        if (err?.upgradeRequired || msg.includes('Upgrade') || msg.includes('Starter plan')) {
+            setShowUpgrade(true);
+        }
+    };
     const refreshAllData = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -168,23 +202,40 @@ function AppContent() {
             setProposals(proposalsRes.proposals);
             setInvoices(invoicesRes.invoices);
             setAnalytics(analyticsRes.analytics);
+            setAnalyticsLocked(Boolean((analyticsRes as any).locked));
             setEvents(calendarRes.events);
+            await refreshSubscription();
         } catch (err) {
             console.error('Error loading data from backend:', err);
             throw err; // re-throw so callers can detect fetch failures
         } finally {
             setIsLoading(false);
         }
+    }, [refreshSubscription]);
+
+    // Re-hydrate user from backend so plan/role are never trusted from localStorage alone
+    useEffect(() => {
+        if (!user) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const me = await api.getMe();
+                if (!cancelled && me.user) persistUser(me.user);
+            } catch {
+                // keep cached user; 401 handler will redirect if needed
+            }
+        })();
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
         if (user) refreshAllData();
-    }, [user, refreshAllData]);
+    }, [user?.id, refreshAllData]);
 
     const handleLoginSuccess = (authUser: User, token: string) => {
-        setUser(authUser);
+        persistUser(authUser);
         try {
-            localStorage.setItem('soloflow_user', JSON.stringify(authUser));
             localStorage.setItem('soloflow_token', token);
         } catch (e) {
             console.error('Failed to save to localStorage:', e);
@@ -205,9 +256,8 @@ function AppContent() {
 
     /** Registration routes through onboarding to shape the dashboard */
     const handleRegisterSuccess = (authUser: User, token: string) => {
-        setUser(authUser);
+        persistUser(authUser);
         try {
-            localStorage.setItem('soloflow_user', JSON.stringify(authUser));
             localStorage.setItem('soloflow_token', token);
         } catch (e) {
             console.error('Failed to save to localStorage:', e);
@@ -221,8 +271,7 @@ function AppContent() {
                 businessName: data.businessName,
                 currency: data.currency
             });
-            setUser(res.user);
-            localStorage.setItem('soloflow_user', JSON.stringify(res.user));
+            persistUser(res.user);
         } catch (e) {
             console.error('Failed to save onboarding profile:', e);
         }
@@ -267,7 +316,8 @@ function AppContent() {
             calendar: '/calendar',
             analytics: '/analytics',
             'ai-assistant': '/ai-assistant',
-            settings: '/settings'
+            settings: '/settings',
+            admin: '/admin'
         };
         let path = paths[page];
         if (page === 'client-detail' && param) path = `/clients/${encodeURIComponent(param)}`;
@@ -293,19 +343,19 @@ function AppContent() {
     const handleCreateClient = async (data: Partial<Client>) => {
         try {
             const { client: newClient } = await api.createClient(data);
-            // Optimistically prepend the new client so the row appears instantly.
-            // totalSpent and projectsCount are 0 for a brand-new client.
             setClients(prev => [{ ...newClient, totalSpent: newClient.totalSpent ?? 0, projectsCount: newClient.projectsCount ?? 0 }, ...prev]);
             showToast('Client added successfully!', 'success');
-            // Background refresh to pull in accurate aggregation data.
             refreshAllData().catch(console.error);
-        } catch (e) { showToast('Failed to add client', 'error'); throw e; }
+        } catch (e: any) {
+            toastPlanError(e, 'Failed to add client');
+            if (String(e?.message || '').includes('Upgrade')) setShowUpgrade(true);
+            throw e;
+        }
     };
 
     const handleUpdateClient = async (id: string, data: Partial<Client>) => {
         try {
             const { client: updated } = await api.updateClient(id, data);
-            // Optimistically update the client in the list while keeping computed fields.
             setClients(prev => prev.map(c => c.id === id ? { ...c, ...updated } : c));
             showToast('Client details updated!', 'success');
             refreshAllData().catch(console.error);
@@ -315,7 +365,6 @@ function AppContent() {
     const handleDeleteClient = async (id: string) => {
         try {
             await api.deleteClient(id);
-            // Optimistically remove from the list immediately.
             setClients(prev => prev.filter(c => c.id !== id));
             showToast('Client removed', 'info');
             if (currentPage === 'client-detail') handleNavigate('clients');
@@ -325,7 +374,10 @@ function AppContent() {
 
     const handleCreateProject = async (data: Partial<Project>) => {
         try { await api.createProject(data); await refreshAllData(); showToast('Project created successfully!', 'success'); }
-        catch (e) { showToast('Failed to create project', 'error'); }
+        catch (e: any) {
+            toastPlanError(e, 'Failed to create project');
+            if (String(e?.message || '').includes('Upgrade')) setShowUpgrade(true);
+        }
     };
 
     const handleUpdateProject = async (id: string, data: Partial<Project>) => {
@@ -361,7 +413,10 @@ function AppContent() {
 
     const handleCreateInvoice = async (data: Partial<Invoice>) => {
         try { await api.createInvoice(data); await refreshAllData(); showToast('Invoice created and registered!', 'success'); }
-        catch (e) { showToast('Failed to create invoice', 'error'); }
+        catch (e: any) {
+            toastPlanError(e, 'Failed to create invoice');
+            if (String(e?.message || '').includes('Upgrade')) setShowUpgrade(true);
+        }
     };
 
     const handleUpdateInvoiceStatus = async (id: string, status: string) => {
@@ -388,14 +443,23 @@ function AppContent() {
 
     const handleUpdateProfile = async (data: Partial<User>) => {
         try {
-            const res = await api.updateProfile(data); setUser(res.user); localStorage.setItem('soloflow_user', JSON.stringify(res.user));
-            await refreshAllData(); showToast('Profile settings saved!', 'success');
+            const res = await api.updateProfile(data);
+            persistUser(res.user);
+            await refreshAllData();
+            showToast('Profile settings saved!', 'success');
         } catch (e) { showToast('Failed to update profile', 'error'); }
     };
 
     const handleResetDemo = async () => {
         try { await api.resetDemo(); await refreshAllData(); showToast('Workspace reset to screenshot demo data', 'success'); }
         catch (e) { showToast('Failed to reset demo data', 'error'); }
+    };
+
+    const handleUpgraded = (upgradedUser: User) => {
+        persistUser(upgradedUser);
+        setAnalyticsLocked(false);
+        void refreshAllData();
+        showToast('Welcome to SoloFlow Pro!', 'success');
     };
 
     const editorProps = {
@@ -408,6 +472,11 @@ function AppContent() {
     return (
         <>
             <ScrollToTop />
+            <UpgradeCheckoutModal
+                isOpen={showUpgrade}
+                onClose={() => setShowUpgrade(false)}
+                onUpgraded={handleUpgraded}
+            />
             <Routes>
                 <Route path="/" element={<LandingPage onEnterApp={handleLaunchDemo} onLogin={() => navigate('/login')} onRegister={() => navigate('/register')} />} />
                 <Route path="/login" element={<LoginPage onLoginSuccess={handleLoginSuccess} onNavigateRegister={() => navigate('/register')} onNavigateLanding={() => navigate('/')} />} />
@@ -417,8 +486,8 @@ function AppContent() {
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/cookies" element={<CookiePolicyPage />} />
                 <Route path="/demo" element={<DemoPage />} />
-                <Route element={user ? <Shell currentPage={currentPage} onNavigate={handleNavigate} user={user} onLogout={handleLogout} onOpenQuickCreate={handleQuickCreate} onResetSeed={handleResetDemo} searchData={{ clients, projects, proposals, invoices }} activities={metrics?.recentActivities || []}><Outlet /></Shell> : <Navigate to="/login" replace />}>
-                    <Route path="/dashboard" element={!onboarded ? <Navigate to="/onboarding" replace /> : <DashboardPage metrics={metrics ?? EMPTY_METRICS} user={user} invoices={invoices} projects={projects} proposals={proposals} onNavigate={handleNavigate} onOpenQuickCreate={handleQuickCreate} isLoading={isLoading && metrics === null} />} />
+                <Route element={user ? <Shell currentPage={currentPage} onNavigate={handleNavigate} user={user} onLogout={handleLogout} onUpgrade={() => setShowUpgrade(true)} onOpenQuickCreate={handleQuickCreate} onResetSeed={handleResetDemo} searchData={{ clients, projects, proposals, invoices }} activities={metrics?.recentActivities || []}><Outlet /></Shell> : <Navigate to="/login" replace />}>
+                    <Route path="/dashboard" element={!onboarded ? <Navigate to="/onboarding" replace /> : <DashboardPage metrics={metrics ?? EMPTY_METRICS} user={user} invoices={invoices} projects={projects} proposals={proposals} onNavigate={handleNavigate} onOpenQuickCreate={handleQuickCreate} onUpgrade={() => setShowUpgrade(true)} subscriptionUsage={subscriptionUsage} isLoading={isLoading && metrics === null} />} />
                     <Route path="/clients" element={<ClientsPage clients={clients} isLoading={isLoading} onSelectClient={id => handleNavigate('client-detail', id)} onCreateClient={handleCreateClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} />} />
                     <Route path="/clients/:clientId" element={selectedClientId ? <ClientDetailPage clientId={selectedClientId} onBack={() => handleNavigate('clients')} onNavigate={handleNavigate} onUpdateClient={handleUpdateClient} /> : <Navigate to="/clients" replace />} />
                     <Route path="/projects" element={<ProjectsPage projects={projects} clients={clients} onCreateProject={handleCreateProject} onUpdateProject={handleUpdateProject} onUpdateStatus={handleUpdateProjectStatus} onDeleteProject={handleDeleteProject} />} />
@@ -427,10 +496,11 @@ function AppContent() {
                     <Route path="/proposals/:proposalId/edit" element={<ProposalEditorPage proposalId={selectedProposalId} {...editorProps} />} />
                     <Route path="/invoices" element={<InvoicesPage invoices={invoices} clients={clients} projects={projects} onSelectInvoice={id => handleNavigate('invoice-detail', id)} onCreateInvoice={handleCreateInvoice} onUpdateStatus={handleUpdateInvoiceStatus} onDeleteInvoice={handleDeleteInvoice} onNavigateToClients={() => handleNavigate('clients')} />} />
                     <Route path="/invoices/:invoiceId" element={selectedInvoiceId ? <InvoiceDetailPage invoiceId={selectedInvoiceId} clients={clients} onBack={() => handleNavigate('invoices')} onUpdateStatus={handleUpdateInvoiceStatus} /> : <Navigate to="/invoices" replace />} />
-                    <Route path="/analytics" element={<AnalyticsPage analytics={analytics ?? EMPTY_ANALYTICS} clients={clients} projects={projects} invoices={invoices} proposals={proposals} isLoading={isLoading && analytics === null} />} />
+                    <Route path="/analytics" element={<AnalyticsPage analytics={analytics ?? EMPTY_ANALYTICS} clients={clients} projects={projects} invoices={invoices} proposals={proposals} isLoading={isLoading && analytics === null} locked={analyticsLocked || !(user?.entitlements?.isPro || user?.plan === 'pro')} onUpgrade={() => setShowUpgrade(true)} />} />
                     <Route path="/calendar" element={<CalendarPage events={events} clients={clients} onCreateEvent={handleCreateEvent} onDeleteEvent={handleDeleteEvent} />} />
-                    <Route path="/settings" element={<SettingsPage user={user} onUpdateProfile={handleUpdateProfile} onResetDemo={handleResetDemo} />} />
-                    <Route path="/ai-assistant" element={<AIAssistantPage user={user} clients={clients} projects={projects} proposals={proposals} invoices={invoices} analytics={analytics} onNavigate={handleNavigate} onCreateProposal={handleCreateProposal} />} />
+                    <Route path="/settings" element={<SettingsPage user={user} onUpdateProfile={handleUpdateProfile} onResetDemo={handleResetDemo} onUpgrade={() => setShowUpgrade(true)} />} />
+                    <Route path="/ai-assistant" element={<AIAssistantPage user={user} clients={clients} projects={projects} proposals={proposals} invoices={invoices} analytics={analytics} onNavigate={handleNavigate} onCreateProposal={handleCreateProposal} onUpgrade={() => setShowUpgrade(true)} />} />
+                    <Route path="/admin" element={<AdminPage user={user} />} />
                 </Route>
                 <Route path="*" element={<Navigate to={user ? '/dashboard' : '/'} replace />} />
             </Routes>
