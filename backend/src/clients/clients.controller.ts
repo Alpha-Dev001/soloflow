@@ -70,9 +70,60 @@ export class ClientsController {
         .exec(),
     ]);
 
-    // Normalize _id → id for related records
-    const normalize = (arr: any[]) =>
-      arr.map((r) => ({ ...r, id: String(r._id), _id: undefined }));
+    // Normalize and enrich related records
+    const normalizedProjects = projects.map((p: any) => ({
+      ...p,
+      id: String(p._id),
+      clientId: String(p.clientId),
+      clientName: client.name,
+      deadline: p.deadline
+        ? new Date(p.deadline).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+        : '',
+      startDate: p.startDate ? new Date(p.startDate).toISOString() : undefined,
+      _id: undefined,
+    }));
+
+    const normalizedProposals = proposals.map((p: any) => ({
+      ...p,
+      id: String(p._id),
+      clientId: String(p.clientId),
+      projectId: p.projectId ? String(p.projectId) : undefined,
+      clientName: client.name,
+      _id: undefined,
+    }));
+
+    const normalizedInvoices = invoices.map((inv: any) => ({
+      ...inv,
+      id: String(inv._id),
+      clientId: String(inv.clientId),
+      projectId: inv.projectId ? String(inv.projectId) : undefined,
+      clientName: client.name,
+      issueDate: inv.issueDate
+        ? new Date(inv.issueDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+        : '',
+      dueDate: inv.dueDate
+        ? new Date(inv.dueDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+        : '',
+      paidAt: inv.paidAt ? new Date(inv.paidAt).toISOString() : undefined,
+      items: (inv.items || []).map((item: any, idx: number) => ({
+        id: item._id ? String(item._id) : (item.id || String(idx)),
+        ...item,
+        _id: undefined,
+      })),
+      _id: undefined,
+    }));
 
     // Compute totalSpent and projectsCount for the single client
     const totalSpent = invoices
@@ -88,10 +139,115 @@ export class ClientsController {
         projectsCount,
         _id: undefined,
       },
-      projects: normalize(projects),
-      proposals: normalize(proposals),
-      invoices: normalize(invoices),
+      projects: normalizedProjects,
+      proposals: normalizedProposals,
+      invoices: normalizedInvoices,
     };
+  }
+
+  /** GET /api/clients/:id/projects */
+  @Get(':id/projects')
+  async findProjects(
+    @CurrentUser() user: UserDocument,
+    @Param('id') id: string,
+  ) {
+    const userId = String(user._id);
+    const client = await this.clientsService.findOne(userId, id);
+    const projects = await this.projectModel
+      .find({ userId: new Types.ObjectId(userId), clientId: new Types.ObjectId(id) })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+
+    const formatted = projects.map((p: any) => ({
+      ...p,
+      id: String(p._id),
+      clientId: String(p.clientId),
+      clientName: client.name,
+      deadline: p.deadline
+        ? new Date(p.deadline).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+        : '',
+      startDate: p.startDate ? new Date(p.startDate).toISOString() : undefined,
+      _id: undefined,
+    }));
+
+    return { projects: formatted, total: formatted.length };
+  }
+
+  /** GET /api/clients/:id/proposals */
+  @Get(':id/proposals')
+  async findProposals(
+    @CurrentUser() user: UserDocument,
+    @Param('id') id: string,
+  ) {
+    const userId = String(user._id);
+    const client = await this.clientsService.findOne(userId, id);
+    const proposals = await this.proposalModel
+      .find({ userId: new Types.ObjectId(userId), clientId: new Types.ObjectId(id) })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+
+    const formatted = proposals.map((p: any) => ({
+      ...p,
+      id: String(p._id),
+      clientId: String(p.clientId),
+      projectId: p.projectId ? String(p.projectId) : undefined,
+      clientName: client.name,
+      _id: undefined,
+    }));
+
+    return { proposals: formatted, total: formatted.length };
+  }
+
+  /** GET /api/clients/:id/invoices */
+  @Get(':id/invoices')
+  async findInvoices(
+    @CurrentUser() user: UserDocument,
+    @Param('id') id: string,
+  ) {
+    const userId = String(user._id);
+    const client = await this.clientsService.findOne(userId, id);
+    const invoices = await this.invoiceModel
+      .find({ userId: new Types.ObjectId(userId), clientId: new Types.ObjectId(id) })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+
+    const formatted = invoices.map((inv: any) => ({
+      ...inv,
+      id: String(inv._id),
+      clientId: String(inv.clientId),
+      projectId: inv.projectId ? String(inv.projectId) : undefined,
+      clientName: client.name,
+      issueDate: inv.issueDate
+        ? new Date(inv.issueDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+        : '',
+      dueDate: inv.dueDate
+        ? new Date(inv.dueDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+        : '',
+      paidAt: inv.paidAt ? new Date(inv.paidAt).toISOString() : undefined,
+      items: (inv.items || []).map((item: any, idx: number) => ({
+        id: item._id ? String(item._id) : (item.id || String(idx)),
+        ...item,
+        _id: undefined,
+      })),
+      _id: undefined,
+    }));
+
+    return { invoices: formatted, total: formatted.length };
   }
 
   /** POST /api/clients */

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -41,6 +42,9 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   onUpdateStatus,
   onDeleteProject
 }) => {
+  const [searchParams] = useSearchParams();
+  const urlClientId = searchParams.get('clientId');
+
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,13 +56,19 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
   // Form states
   const [formData, setFormData] = useState({
     title: '',
-    clientId: clients[0]?.id || '',
+    clientId: urlClientId || clients[0]?.id || '',
     description: '',
     budget: 3500,
     priority: 'Medium' as ProjectPriority,
     status: 'To Do' as ProjectStatus,
     deadline: 'May 30, 2024'
   });
+
+  useEffect(() => {
+    if (urlClientId) {
+      setFormData(prev => ({ ...prev, clientId: urlClientId }));
+    }
+  }, [urlClientId]);
 
   const filteredProjects = projects.filter(p =>
     p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -463,28 +473,45 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F4F0EA]">
-                {paginatedProjects.map(proj => (
-                  <tr key={proj.id} className="hover:bg-[#F4F0EA] transition-colors">
-                    <td className="py-3 px-4 font-medium text-[#1A1918]">{proj.title}</td>
-                    <td className="py-3 px-3 text-[#6E6E73]">{proj.clientName}</td>
-                    <td className="py-3 px-3 text-[#8C8278]">{proj.deadline}</td>
-                    <td className="py-3 px-3 font-medium text-[#1A1918]">${proj.budget.toLocaleString()}</td>
-                    <td className="py-3 px-3">
-                      {getPriorityBadge(proj.priority)}
-                    </td>
-                    <td className="py-3 px-3">
-                      <Badge size="sm" variant={proj.status.toLowerCase() as any}>{proj.status}</Badge>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => setPendingDelete(proj)}
-                        className="p-1 text-[#8C8278] hover:text-[#FF3B30] rounded-md hover:bg-[#FF3B30]/10 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                {paginatedProjects.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-10 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <p className="text-xs" style={{ color: '#8C8278' }}>
+                          {projects.length === 0 ? 'No projects yet. Start by creating your first project.' : 'No projects found matching your search.'}
+                        </p>
+                        {projects.length === 0 && (
+                          <Button onClick={() => openCreateModal('To Do')} variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
+                            Create Project
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  paginatedProjects.map(proj => (
+                    <tr key={proj.id} className="hover:bg-[#F4F0EA] transition-colors">
+                      <td className="py-3 px-4 font-medium text-[#1A1918]">{proj.title}</td>
+                      <td className="py-3 px-3 text-[#6E6E73]">{proj.clientName}</td>
+                      <td className="py-3 px-3 text-[#8C8278]">{proj.deadline}</td>
+                      <td className="py-3 px-3 font-medium text-[#1A1918]">${proj.budget.toLocaleString()}</td>
+                      <td className="py-3 px-3">
+                        {getPriorityBadge(proj.priority)}
+                      </td>
+                      <td className="py-3 px-3">
+                        <Badge size="sm" variant={proj.status.toLowerCase() as any}>{proj.status}</Badge>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => setPendingDelete(proj)}
+                          className="p-1 text-[#8C8278] hover:text-[#FF3B30] rounded-md hover:bg-[#FF3B30]/10 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

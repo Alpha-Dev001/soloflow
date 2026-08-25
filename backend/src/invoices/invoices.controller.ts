@@ -40,18 +40,7 @@ export class InvoicesController {
     @CurrentUser() user: UserDocument,
     @Param('id') id: string,
   ) {
-    const invoice = await this.invoicesService.findOne(String(user._id), id);
-    const invoiceData = invoice.toJSON();
-    // Normalize _id → id for frontend consistency
-    return {
-      invoice: {
-        ...invoiceData,
-        id: String(invoiceData._id),
-        clientId: invoiceData.clientId ? String(invoiceData.clientId) : undefined,
-        projectId: invoiceData.projectId ? String(invoiceData.projectId) : undefined,
-        _id: undefined,
-      }
-    };
+    return this.invoicesService.findOneDetails(String(user._id), id);
   }
 
   /** POST /api/invoices */

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Sparkles,
   ChevronLeft,
@@ -18,7 +19,7 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useToast } from '../components/ui/Toast';
 import { api } from '../services/api';
-import type { Proposal, Client, Project } from '../types';
+import type { Proposal, Client, Project, AiUsage } from '../types';
 
 interface ProposalEditorPageProps {
   proposalId?: string | null;
@@ -62,11 +63,18 @@ export const ProposalEditorPage: React.FC<ProposalEditorPageProps> = ({
   onSaved
 }) => {
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
+  const urlClientId = searchParams.get('clientId');
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null);
 
-  // ── AI brief state — starts completely blank ──
-  const [brief, setBrief] = useState(emptyBrief);
+  // ── AI brief state — starts with URL clientId if provided, else blank ──
+  const [brief, setBrief] = useState(() => ({
+    ...emptyBrief,
+    clientId: urlClientId || ''
+  }));
 
   // ── Proposal document state — starts completely blank ──
   const [title, setTitle] = useState('');
@@ -81,7 +89,7 @@ export const ProposalEditorPage: React.FC<ProposalEditorPageProps> = ({
 
   const selectedClient = clients.find(c => c.id === brief.clientId) || null;
 
-  // Load existing proposal if editing
+  // Load existing proposal if editing, or sync urlClientId if creating new
   useEffect(() => {
     if (proposalId) {
       api.getProposalById(proposalId).then(res => {
@@ -105,9 +113,11 @@ export const ProposalEditorPage: React.FC<ProposalEditorPageProps> = ({
       }).catch(err => {
         console.error('Failed to load proposal', err);
       });
+    } else if (urlClientId) {
+      setBrief(prev => ({ ...prev, clientId: urlClientId }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [proposalId]);
+  }, [proposalId, urlClientId]);
 
   const canGenerate =
     !!brief.clientId &&
@@ -123,6 +133,7 @@ export const ProposalEditorPage: React.FC<ProposalEditorPageProps> = ({
   // ── AI generation ──
   const handleGenerateAI = async () => {
     if (!canGenerate) return;
+    if (isGenerating) return; // prevent duplicate concurrent requests from the same UI action
     const clientName = selectedClient?.name || '';
 
     try {
@@ -136,6 +147,8 @@ export const ProposalEditorPage: React.FC<ProposalEditorPageProps> = ({
         budget: brief.budget,
         tone: brief.tone
       });
+
+      if (res.usage) setAiUsage(res.usage);
 
       const generated = res.proposal;
       if (generated) {
@@ -154,7 +167,19 @@ export const ProposalEditorPage: React.FC<ProposalEditorPageProps> = ({
       }
     } catch (err: any) {
       console.error(err);
-      showToast('AI is unavailable right now — you can still write the proposal manually.', 'info');
+      // Daily AI generation limit reached (backend-enforced).
+      if (err?.status === 429) {
+        if (err?.quota) setAiUsage(err.quota);
+        const limit = err?.quota?.limit;
+        showToast(
+          limit
+            ? `You've reached your ${limit} AI proposal generations for today.`
+            : "You've reached today's AI proposal generation limit.",
+          'info'
+        );
+      } else {
+        showToast('AI is unavailable right now — you can still write the proposal manually.', 'info');
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -402,6 +427,13 @@ export const ProposalEditorPage: React.FC<ProposalEditorPageProps> = ({
             {!canGenerate && (
               <p className="text-[10px] mt-2 text-center leading-relaxed" style={{ color: T.faint }}>
                 Add a client, a project title and a short brief to unlock generation.
+              </p>
+            )}
+            {aiUsage && aiUsage.remaining >= 0 && (
+              <p className="text-[10px] mt-2 text-center leading-relaxed" style={{ color: T.faint }}>
+                {aiUsage.remaining > 0
+                  ? `${aiUsage.remaining} AI generation${aiUsage.remaining === 1 ? '' : 's'} left today`
+                  : `Daily AI limit reached (${aiUsage.limit})`}
               </p>
             )}
           </div>

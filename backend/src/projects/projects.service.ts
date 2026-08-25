@@ -29,16 +29,32 @@ export class ProjectsService {
     private readonly activitiesService: ActivitiesService,
   ) { }
 
-  private async getClientName(userId: string, clientId: string): Promise<string> {
+  /** Verify that the client exists and belongs to the authenticated user */
+  async validateClient(userId: string, clientId: string): Promise<any> {
+    if (!clientId || !Types.ObjectId.isValid(clientId)) {
+      throw new NotFoundException('Valid client ID is required');
+    }
     const client = await this.clientModel
       .findOne({ _id: new Types.ObjectId(clientId), userId: new Types.ObjectId(userId) })
       .lean()
       .exec() as any;
-    return client ? client.name : 'Unknown Client';
+    if (!client) {
+      throw new NotFoundException('Client not found or does not belong to user');
+    }
+    return client;
+  }
+
+  private async getClientName(userId: string, clientId: string): Promise<string> {
+    try {
+      const client = await this.validateClient(userId, clientId);
+      return client.name;
+    } catch {
+      return 'Unknown Client';
+    }
   }
 
   /** Serialize a project document to the frontend shape */
-  private toResponse(proj: any, clientName: string): any {
+  toResponse(proj: any, clientName: string): any {
     const obj = proj.toJSON ? proj.toJSON() : { ...proj };
     return {
       ...obj,
@@ -64,7 +80,12 @@ export class ProjectsService {
     clientId?: string,
   ): Promise<{ projects: any[]; total: number }> {
     const query: any = { userId: new Types.ObjectId(userId) };
-    if (clientId) query.clientId = new Types.ObjectId(clientId);
+    if (clientId) {
+      if (!Types.ObjectId.isValid(clientId)) {
+        throw new NotFoundException('Invalid clientId');
+      }
+      query.clientId = new Types.ObjectId(clientId);
+    }
     if (search && search.trim()) {
       query.$or = [
         { title: { $regex: search.trim(), $options: 'i' } },
@@ -92,19 +113,46 @@ export class ProjectsService {
     return { projects: enriched, total: enriched.length };
   }
 
+  async findByClient(userId: string, clientId: string): Promise<{ projects: any[]; total: number }> {
+    const client = await this.validateClient(userId, clientId);
+    const projects = await this.projectModel
+      .find({ userId: new Types.ObjectId(userId), clientId: new Types.ObjectId(clientId) })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    const enriched = projects.map((p) => this.toResponse(p, client.name));
+    return { projects: enriched, total: enriched.length };
+  }
+
   async findOne(userId: string, projectId: string): Promise<ProjectDocument> {
+    if (!Types.ObjectId.isValid(projectId)) {
+      throw new NotFoundException('Project not found');
+    }
     const project = await this.projectModel.findById(projectId).exec();
     if (!project) throw new NotFoundException('Project not found');
     if (String(project.userId) !== userId) throw new ForbiddenException();
     return project;
   }
 
+  async findOneDetails(userId: string, projectId: string): Promise<any> {
+    const project = await this.findOne(userId, projectId);
+    const client = await this.validateClient(userId, String(project.clientId));
+    return {
+      project: this.toResponse(project, client.name),
+      client: {
+        ...client,
+        id: String(client._id),
+        _id: undefined,
+      },
+    };
+  }
+
   async create(userId: string, dto: CreateProjectDto): Promise<any> {
-    const clientName = await this.getClientName(userId, dto.clientId);
+    const client = await this.validateClient(userId, dto.clientId);
 
     const project = new this.projectModel({
       userId: new Types.ObjectId(userId),
-      clientId: new Types.ObjectId(dto.clientId),
+      clientId: new Types.ObjectId(client._id),
       title: dto.title,
       description: dto.description || '',
       budget: dto.budget || 0,
@@ -113,7 +161,7 @@ export class ProjectsService {
       deadline: parseDate(dto.deadline),
       startDate: dto.startDate ? parseDate(dto.startDate) : undefined,
       tags: dto.tags || [],
-      proposalId: dto.proposalId ? new Types.ObjectId(dto.proposalId) : undefined,
+      proposalId: dto.proposalId && Types.ObjectId.isValid(dto.proposalId) ? new Types.ObjectId(dto.proposalId) : undefined,
     });
     const saved = await project.save();
 
@@ -121,18 +169,25 @@ export class ProjectsService {
       userId,
       type: 'project_created',
       title: `Project "${saved.title}"`,
-      subtitle: `created for ${clientName}`,
+      subtitle: `created for ${client.name}`,
       iconType: 'project',
     });
 
-    return { project: this.toResponse(saved, clientName) };
+    return { project: this.toResponse(saved, client.name) };
   }
 
   async update(userId: string, projectId: string, dto: UpdateProjectDto): Promise<any> {
     const project = await this.findOne(userId, projectId);
-    const clientName = await this.getClientName(userId, String(project.clientId));
+    let targetClientId = String(project.clientId);
 
-    if (dto.clientId) project.clientId = new Types.ObjectId(dto.clientId) as any;
+    if (dto.clientId && dto.clientId !== targetClientId) {
+      const newClient = await this.validateClient(userId, dto.clientId);
+      project.clientId = new Types.ObjectId(newClient._id) as any;
+      targetClientId = String(newClient._id);
+    }
+
+    const clientName = await this.getClientName(userId, targetClientId);
+
     if (dto.title !== undefined) project.title = dto.title;
     if (dto.description !== undefined) project.description = dto.description;
     if (dto.budget !== undefined) project.budget = dto.budget;

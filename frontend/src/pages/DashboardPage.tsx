@@ -532,14 +532,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <div>
             <div className="flex items-center justify-between pb-4">
               <div>
-                <h3 className="font-semibold text-sm" style={{ color: T.ink }}>Revenue trajectory</h3>
-                <div className="flex items-baseline gap-2 mt-1">
+                <h3 className="font-semibold text-sm" style={{ color: T.ink }}>Monthly earnings</h3>
+                <p className="text-[11px] mt-0.5" style={{ color: T.muted }}>Money you made from paid invoices, month by month</p>
+                <div className="flex items-baseline gap-2 mt-1.5">
                   <span className="text-xl font-bold tracking-tight" style={{ color: T.ink }}>
-                    {cur}{metrics.revenueOverview.total.toLocaleString()}
+                    {cur}{(timelineData[timelineData.length - 1]?.amount ?? 0).toLocaleString()}
+                  </span>
+                  <span className="text-[11px]" style={{ color: T.muted }}>
+                    earned in {timelineData[timelineData.length - 1]?.month || 'the latest month'}
                   </span>
                   {metrics.revenueOverview.growthPercent > 0 && (
                     <span className="text-[11px] font-semibold" style={{ color: '#1E7D3F' }}>
-                      +{metrics.revenueOverview.growthPercent}%
+                      +{metrics.revenueOverview.growthPercent}% vs last month
                     </span>
                   )}
                 </div>

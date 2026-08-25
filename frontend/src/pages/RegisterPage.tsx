@@ -52,7 +52,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         throw new Error(data.message || 'Registration failed. Please try again.');
       }
 
-      onRegisterSuccess(data.user, data.token || 'demo-token');
+      onRegisterSuccess(data.user, data.token || '');
     } catch (err: any) {
       setErrorMessage(err.message || 'Registration failed. Please check your details.');
     } finally {
@@ -158,7 +158,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <CheckCircle2 className="w-3.5 h-3.5 text-[#1E7D3F]" />
-          <span>Includes demo client & invoice templates</span>
+          <span>Start with a clean, professional workspace</span>
         </div>
       </div>
 

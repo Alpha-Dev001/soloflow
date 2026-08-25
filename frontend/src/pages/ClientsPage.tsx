@@ -410,8 +410,17 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
               <tbody className="divide-y divide-[#F4F0EA]">
                 {filteredClients.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-xs" style={{ color: T.muted }}>
-                      No clients found matching your search.
+                    <td colSpan={7} className="py-10 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <p className="text-xs" style={{ color: T.muted }}>
+                          {clients.length === 0 ? 'No clients yet. Start by adding your first client.' : 'No clients found matching your search.'}
+                        </p>
+                        {clients.length === 0 && (
+                          <Button onClick={openAddForm} variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
+                            Create Client
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -528,8 +537,17 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
           {/* Mobile & Tablet Stacked Card View */}
           <div className="md:hidden divide-y divide-[#F4F0EA]">
             {filteredClients.length === 0 ? (
-              <div className="py-8 px-4 text-center text-xs" style={{ color: T.muted }}>
-                No clients found matching your search.
+              <div className="py-8 px-4 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-xs" style={{ color: T.muted }}>
+                    {clients.length === 0 ? 'No clients yet. Start by adding your first client.' : 'No clients found matching your search.'}
+                  </p>
+                  {clients.length === 0 && (
+                    <Button onClick={openAddForm} variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
+                      Create Client
+                    </Button>
+                  )}
+                </div>
               </div>
             ) : (
               paginatedClients.map(client => (

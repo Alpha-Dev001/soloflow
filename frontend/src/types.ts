@@ -220,3 +220,12 @@ export interface CalendarEvent {
   description?: string;
   completed?: boolean;
 }
+
+/** Daily AI usage / quota state returned by the backend. */
+export interface AiUsage {
+  plan: 'STARTER' | 'PRO';
+  limit: number;
+  used: number;
+  remaining: number;
+  resetAt?: string;
+}

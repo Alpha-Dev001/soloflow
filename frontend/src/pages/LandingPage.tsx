@@ -81,7 +81,7 @@ const features = [
 const faqs = [
   {
     q: 'Is SoloFlow really free to start?',
-    a: 'Yes. The Starter plan is free forever — up to 3 active clients, 5 invoices per month, and a basic Kanban board. No credit card required.',
+    a: 'Yes. The Starter plan is free forever — up to 2 active clients, 3 invoices per month, and 1 active project board. No credit card required.',
   },
   {
     q: 'How does the AI proposal generator work?',
@@ -133,6 +133,47 @@ const Reveal: React.FC<{
     <div ref={ref} className={`${stagger ? 'reveal-stagger' : 'reveal'} ${className}`}>
       {children}
     </div>
+  );
+};
+
+/* ── Hero headline typewriter (the brighter accent line under the black headline) ── */
+const HERO_TAGLINES = [
+  'effortlessly.',
+  'smarter.',
+  'in flow.',
+];
+
+/** Types each tagline, holds, deletes, then moves to the next. */
+const HeroTypewriter: React.FC = () => {
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  const [length, setLength] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const phrase = HERO_TAGLINES[phraseIdx];
+    let delay = deleting ? 14 : 34;
+    if (!deleting && length === phrase.length) delay = 2600; // hold when fully typed
+    else if (deleting && length === 0) delay = 420; // brief pause before next line
+
+    const t = setTimeout(() => {
+      if (!deleting) {
+        if (length < phrase.length) setLength(length + 1);
+        else setDeleting(true);
+      } else if (length > 0) {
+        setLength(length - 1);
+      } else {
+        setDeleting(false);
+        setPhraseIdx((phraseIdx + 1) % HERO_TAGLINES.length);
+      }
+    }, delay);
+    return () => clearTimeout(t);
+  }, [length, deleting, phraseIdx]);
+
+  return (
+    <>
+      {HERO_TAGLINES[phraseIdx].slice(0, length)}
+      <span className="type-caret" aria-hidden />
+    </>
   );
 };
 
@@ -290,7 +331,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </header>
 
       {/* ══ Hero ══ */}
-      <section className="relative overflow-hidden min-h-[100svh] flex flex-col items-center justify-center px-6 max-w-4xl mx-auto text-center">
+      <section className="relative overflow-hidden min-h-[85svh] flex items-center justify-center px-6 max-w-7xl mx-auto pt-32 pb-12">
         {/* Square grid backdrop softly fading around the hero words */}
         <div
           aria-hidden
@@ -308,56 +349,84 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           }}
         />
 
-        <div className="relative w-full flex flex-col items-center pb-8 pt-24 sm:pt-0">
-          <div className="relative inline-flex items-center gap-2 mb-7 auth-fade-item">
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: T.accent }} />
-            <p className="text-[12px] font-semibold tracking-widest uppercase" style={{ color: T.accent }}>
-              The all-in-one workspace for independent professionals
+        <div className="relative w-full grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-12 items-center pt-24 lg:pt-0">
+          {/* Left side - Text content */}
+          <div className="flex flex-col items-center lg:items-start lg:pl-28 text-center lg:text-left">
+            <div className="relative inline-flex items-center gap-2 mb-4 auth-fade-item">
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: T.accent }} />
+              <p className="text-[12px] font-semibold tracking-widest uppercase" style={{ color: T.accent }}>
+                All-in-one workspace for freelancers.
+              </p>
+            </div>
+
+            <h1
+              className="relative text-[44px] sm:text-[60px] md:text-[72px] font-bold tracking-[-0.03em] leading-[1.05] mb-6 auth-fade-item"
+              style={{
+                animationDelay: '0.1s',
+                textShadow: '0 2px 20px rgba(74,59,50,0.12), 0 1px 2px rgba(74,59,50,0.06)',
+              }}
+              aria-label={`Run your freelance ${HERO_TAGLINES[0]}`}
+            >
+              Run your freelance<br />
+              <span
+                className="relative inline-block"
+                style={{ fontWeight: 300, color: T.accent }}
+              >
+                {/* Invisible sizer holds the longest phrase so the line never reflows */}
+                <span className="invisible" aria-hidden>
+                  {HERO_TAGLINES.reduce((a, b) => (b.length > a.length ? b : a))}
+                </span>
+                <span className="absolute inset-x-0 top-0 whitespace-nowrap" aria-hidden>
+                  <HeroTypewriter />
+                </span>
+              </span>
+            </h1>
+
+            <p
+              className="relative text-[17px] sm:text-[19px] max-w-xl mx-auto lg:mx-0 leading-relaxed mb-6 auth-fade-item"
+              style={{ color: T.body, fontWeight: 400, animationDelay: '0.2s' }}
+            >
+              Manage clients, projects, invoices, and AI-powered proposals — all in one workspace built for freelancers.
             </p>
+
+            <div className="relative flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 auth-fade-item" style={{ animationDelay: '0.3s' }}>
+              <span
+                className="relative inline-flex rounded-xl"
+                style={{ boxShadow: '0 12px 32px -6px rgba(147,122,98,0.55), 0 4px 12px -2px rgba(147,122,98,0.35)' }}
+              >
+                <Button
+                  onClick={onRegister}
+                  variant="primary"
+                  size="lg"
+                  iconRight={<ArrowRight className="w-4 h-4" />}
+                >
+                  Start for free
+                </Button>
+              </span>
+              <Button
+                onClick={() => navigate('/demo')}
+                variant="secondary"
+                size="lg"
+                icon={<Play className="w-3.5 h-3.5 fill-current" />}
+              >
+                Watch demo
+              </Button>
+            </div>
           </div>
 
-          <h1
-            className="relative text-[44px] sm:text-[60px] md:text-[72px] font-bold tracking-[-0.03em] leading-[1.05] mb-6 auth-fade-item"
-            style={{
-              animationDelay: '0.1s',
-              textShadow: '0 2px 20px rgba(74,59,50,0.12), 0 1px 2px rgba(74,59,50,0.06)',
-            }}
-          >
-            Run your freelance<br />
-            <span style={{ fontWeight: 300, color: T.accent }}>
-              business, effortlessly.
-            </span>
-          </h1>
-
-          <p
-            className="relative text-[17px] sm:text-[19px] max-w-lg mx-auto leading-relaxed mb-8 auth-fade-item"
-            style={{ color: T.body, fontWeight: 400, animationDelay: '0.2s' }}
-          >
-            Clients, projects, invoices, and AI proposals — unified in one beautifully crafted workspace.
-          </p>
-
-          <div className="relative flex flex-col sm:flex-row items-center justify-center gap-3 auth-fade-item" style={{ animationDelay: '0.3s' }}>
-            <span
-              className="relative inline-flex rounded-xl"
-              style={{ boxShadow: '0 12px 32px -6px rgba(147,122,98,0.55), 0 4px 12px -2px rgba(147,122,98,0.35)' }}
-            >
-              <Button
-                onClick={onRegister}
-                variant="primary"
-                size="lg"
-                iconRight={<ArrowRight className="w-4 h-4" />}
-              >
-                Start for free
-              </Button>
-            </span>
-            <Button
-              onClick={() => navigate('/demo')}
-              variant="secondary"
-              size="lg"
-              icon={<Play className="w-3.5 h-3.5 fill-current" />}
-            >
-              Watch demo
-            </Button>
+          {/* Right side - Hero Illustration (hidden on mobile) */}
+          <div className="relative hidden lg:block lg:pr-14 auth-fade-item" style={{ animationDelay: '0.4s' }}>
+            <img
+              src="/assets/Business growth-amico.svg"
+              alt="Business growth illustration"
+              className="w-full max-w-xl mx-auto"
+              style={{
+                maxHeight: '500px',
+                objectFit: 'contain',
+                /* Single soft ground shadow — warm ink tone from the design system */
+                filter: 'drop-shadow(0 20px 28px rgba(42, 35, 32, 0.28))',
+              }}
+            />
           </div>
         </div>
       </section>
@@ -403,21 +472,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           >
             <div className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: T.accent }}>Starter</div>
             <div className="flex items-baseline gap-1 mb-2">
-              <span className="text-[48px] font-bold tracking-tight leading-none">$0</span>
-              <span className="text-[13px] font-semibold" style={{ color: T.muted }}>/mo</span>
+              <span className="text-[36px] sm:text-[42px] font-bold tracking-tight leading-none">Free forever</span>
             </div>
             <p className="text-[13px] font-medium mb-8" style={{ color: T.body }}>Perfect for getting started.</p>
             <ul className="space-y-3 mb-10 flex-1">
-              {['Up to 3 active clients', '5 invoices per month', 'Basic Kanban board'].map(item => (
+              {[
+                'Up to 2 active clients',
+                '1 active project board',
+                '3 invoices per month',
+                'Manual proposal editor',
+              ].map(item => (
                 <li key={item} className="flex items-start gap-2.5 text-[13px] font-medium" style={{ color: T.ink }}>
                   <CheckCircle2 className="w-4 h-4 mt-[1px] shrink-0" style={{ color: T.accent }} />
                   {item}
                 </li>
               ))}
-              <li className="flex items-start gap-2.5 text-[13px]" style={{ color: T.muted }}>
-                <span className="w-4 shrink-0 text-center">—</span>
-                AI Proposals (Pro only)
-              </li>
+              {[
+                'AI Proposal Generator',
+                'AI Business Assistant',
+                'Financial analytics & reports',
+              ].map(item => (
+                <li key={item} className="flex items-start gap-2.5 text-[13px]" style={{ color: T.muted }}>
+                  <span className="w-4 shrink-0 text-center font-bold text-[11px] opacity-60">✕</span>
+                  <span className="opacity-75">{item}</span>
+                </li>
+              ))}
             </ul>
             <Button onClick={onRegister} variant="outline" className="w-full">
               Get started free
@@ -448,17 +527,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
               <div className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: T.accentSoft }}>Pro</div>
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-[48px] font-bold tracking-tight leading-none text-white">$24</span>
+                <span className="text-[48px] font-bold tracking-tight leading-none text-white">$19</span>
                 <span className="text-[13px] font-semibold text-white/70">/mo</span>
               </div>
-              <p className="text-[13px] font-medium text-white/85 mb-8">For serious freelancers and boutique studios.</p>
+              <p className="text-[13px] font-medium text-white/85 mb-8">For serious freelancers ready to scale.</p>
               <ul className="space-y-3 mb-10 flex-1">
                 {[
-                  'Unlimited clients & projects',
-                  'Unlimited invoicing & reminders',
-                  'Unlimited AI proposals',
-                  'Custom branding & domain',
-                  'Financial analytics & tax reports',
+                  'Unlimited clients & active projects',
+                  'Unlimited AI proposal generator',
+                  'AI Business Assistant (rate & scope advice)',
+                  'Unlimited invoicing & payment tracking',
+                  'Financial analytics & win-rate metrics',
+                  'Unified deadline & payment calendar',
+                  'Custom branding & PDF exports',
                 ].map(item => (
                   <li key={item} className="flex items-start gap-2.5 text-[13px] font-medium text-white/90">
                     <CheckCircle2 className="w-4 h-4 mt-[1px] shrink-0" style={{ color: T.accentSoft }} />
@@ -576,6 +657,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       <style>{`
         .w-4\\.5 { width: 18px; height: 18px; }
+                .type-caret {
+          display: inline-block;
+          width: 2px;
+          height: 1em;
+          margin-left: 2px;
+          vertical-align: -0.12em;
+          background: ${T.accent};
+          animation: caret-blink 1s steps(1) infinite;
+                }
+                @keyframes caret-blink { 50% { opacity: 0; } }
         .nav-link::after {
           content: '';
           position: absolute;

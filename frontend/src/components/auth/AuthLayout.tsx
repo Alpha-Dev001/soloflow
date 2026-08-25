@@ -29,9 +29,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   children,
 }) => {
   return (
-    <div className="min-h-screen flex relative texture-linen selection:bg-[#EAE4DC] selection:text-[#3D3028]" style={{ background: 'linear-gradient(135deg, #C9C3BB 0%, #D9D3CB 50%, #E5DFD7 100%)' }}>
+    <div className="h-screen flex relative texture-linen selection:bg-[#EAE4DC] selection:text-[#3D3028]" style={{ background: 'linear-gradient(135deg, #C9C3BB 0%, #D9D3CB 50%, #E5DFD7 100%)' }}>
       {/* ══ Left — Brand Showcase Panel (hidden below lg) ══ */}
-      <aside className="hidden lg:flex lg:w-[46%] xl:w-[44%] relative overflow-hidden bg-[#453B33] text-white flex-col justify-between p-12 xl:p-16">
+      <aside className="hidden lg:flex lg:w-[46%] xl:w-[44%] h-full relative overflow-hidden bg-[#453B33] text-white flex-col p-12 xl:p-16">
         {/* Ambient glows */}
         <div
           aria-hidden
@@ -46,20 +46,21 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         {/* Grain texture */}
         <div aria-hidden className="auth-grain absolute inset-0" />
 
-        {/* Top — Logo */}
-        <div className="relative z-10 flex items-center gap-2.5 auth-fade-item" style={{ animationDelay: '0.05s' }}>
-          <button
-            onClick={onNavigateLanding}
-            className="flex items-center gap-2.5 cursor-pointer group"
-            aria-label="Back to SoloFlow home"
-          >
-            <Logo size={36} className="transition-transform duration-200 group-hover:scale-105" />
-            <span className="font-semibold text-lg tracking-tight">SoloFlow</span>
-          </button>
-        </div>
+        {/* Centered content — Logo + Headline + highlights */}
+        <div className="relative z-10 max-w-md flex-1 flex flex-col justify-center">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 auth-fade-item mb-8" style={{ animationDelay: '0.05s' }}>
+            <button
+              onClick={onNavigateLanding}
+              className="flex items-center gap-2.5 cursor-pointer group"
+              aria-label="Back to SoloFlow home"
+            >
+              <Logo size={36} className="transition-transform duration-200 group-hover:scale-105" />
+              <span className="font-semibold text-lg tracking-tight">SoloFlow</span>
+            </button>
+          </div>
 
-        {/* Middle — Headline + highlights */}
-        <div className="relative z-10 max-w-md">
+          {/* Headline + highlights */}
           <p
             className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#C9B79E] mb-5 auth-fade-item"
             style={{ animationDelay: '0.15s' }}
@@ -88,18 +89,10 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
             ))}
           </ul>
         </div>
-
-        {/* Bottom — quiet endorsement */}
-        <figure className="relative z-10 auth-fade-item" style={{ animationDelay: '0.68s' }}>
-          <blockquote className="text-[13px] font-medium text-white/70 leading-relaxed mb-2">
-            "Proposals that took hours now take minutes."
-          </blockquote>
-          <figcaption className="text-[11px] font-medium text-white/50">Sarah Jenkins · Brand Strategist</figcaption>
-        </figure>
       </aside>
 
       {/* ══ Right — Form Panel ══ */}
-      <main className="flex-1 flex flex-col min-h-screen relative">
+      <main className="flex-1 flex flex-col h-full relative overflow-hidden">
         {/* Dot grid backdrop - dots at square vertices only */}
         <div
           aria-hidden

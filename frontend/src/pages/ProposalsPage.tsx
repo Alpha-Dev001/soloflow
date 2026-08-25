@@ -211,8 +211,17 @@ export const ProposalsPage: React.FC<ProposalsPageProps> = ({
                   <tbody className="divide-y divide-[#F4F0EA]">
                     {filteredProposals.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-10 text-center text-xs text-[#8C8278]">
-                          No proposals found. Click "New Proposal" to generate one.
+                        <td colSpan={7} className="py-10 text-center">
+                          <div className="flex flex-col items-center gap-3">
+                            <p className="text-xs" style={{ color: '#8C8278' }}>
+                              {proposals.length === 0 ? 'No proposals yet. Start by generating your first proposal.' : 'No proposals found matching your search.'}
+                            </p>
+                            {proposals.length === 0 && (
+                              <Button onClick={handleNewProposalClick} variant="primary" size="sm" icon={<Sparkles className="w-3.5 h-3.5" />}>
+                                Create Proposal
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ) : (
@@ -283,7 +292,18 @@ export const ProposalsPage: React.FC<ProposalsPageProps> = ({
               {/* Mobile */}
               <div className="md:hidden divide-y divide-[#F4F0EA]">
                 {filteredProposals.length === 0 ? (
-                  <div className="py-8 px-4 text-center text-xs text-[#8C8278]">No proposals found. Click "New Proposal" to generate one.</div>
+                  <div className="py-8 px-4 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <p className="text-xs" style={{ color: '#8C8278' }}>
+                        {proposals.length === 0 ? 'No proposals yet. Start by generating your first proposal.' : 'No proposals found matching your search.'}
+                      </p>
+                      {proposals.length === 0 && (
+                        <Button onClick={handleNewProposalClick} variant="primary" size="sm" icon={<Sparkles className="w-3.5 h-3.5" />}>
+                          Create Proposal
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 ) : (
                   paginatedProposals.map(prop => (
                     <div key={prop.id} onClick={() => onOpenProposal(prop.id)} className="p-3.5 hover:bg-[#F4F0EA] transition-colors cursor-pointer space-y-2.5">

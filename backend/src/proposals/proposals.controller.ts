@@ -16,7 +16,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserDocument } from '../users/user.schema';
 import { ProposalsService } from './proposals.service';
-import { AiService } from '../ai/ai.service';
 import {
   CreateProposalDto,
   GenerateProposalDto,
@@ -29,7 +28,6 @@ import { UpdateProposalDto } from './dto/update-proposal.dto';
 export class ProposalsController {
   constructor(
     private readonly proposalsService: ProposalsService,
-    private readonly aiService: AiService,
   ) {}
 
   /** GET /api/proposals?search=&clientId= */
@@ -45,9 +43,11 @@ export class ProposalsController {
   /** POST /api/proposals/generate — AI generation (not persisted) */
   @Post('generate')
   @HttpCode(HttpStatus.OK)
-  async generate(@Body() dto: GenerateProposalDto) {
-    const generated = await this.aiService.generateProposal(dto);
-    return { proposal: generated };
+  async generate(
+    @CurrentUser() user: UserDocument,
+    @Body() dto: GenerateProposalDto,
+  ) {
+    return this.proposalsService.generateProposal(user, dto);
   }
 
   /** GET /api/proposals/:id */
@@ -56,8 +56,7 @@ export class ProposalsController {
     @CurrentUser() user: UserDocument,
     @Param('id') id: string,
   ) {
-    const proposal = await this.proposalsService.findOne(String(user._id), id);
-    return { proposal: proposal.toJSON() };
+    return this.proposalsService.findOneDetails(String(user._id), id);
   }
 
   /** POST /api/proposals */

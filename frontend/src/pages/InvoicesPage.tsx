@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Search,
   Plus,
@@ -49,6 +50,9 @@ export const InvoicesPage: React.FC<InvoicesPageProps> = ({
   onNavigateToClients
 }) => {
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
+  const urlClientId = searchParams.get('clientId');
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -58,8 +62,14 @@ export const InvoicesPage: React.FC<InvoicesPageProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const [selectedClientId, setSelectedClientId] = useState(clients[0]?.id || '');
+  const [selectedClientId, setSelectedClientId] = useState(urlClientId || clients[0]?.id || '');
   const [selectedProjectId, setSelectedProjectId] = useState('');
+
+  useEffect(() => {
+    if (urlClientId) {
+      setSelectedClientId(urlClientId);
+    }
+  }, [urlClientId]);
   const defaultDueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const [dueDate, setDueDate] = useState(defaultDueDate);
   const [taxRate, setTaxRate] = useState(0);
@@ -275,8 +285,17 @@ export const InvoicesPage: React.FC<InvoicesPageProps> = ({
                   <tbody className="divide-y divide-[#F4F0EA]">
                     {filteredInvoices.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-10 text-center text-xs text-[#8C8278]">
-                          No invoices found. Click "New Invoice" to issue one.
+                        <td colSpan={6} className="py-10 text-center">
+                          <div className="flex flex-col items-center gap-3">
+                            <p className="text-xs" style={{ color: '#8C8278' }}>
+                              {invoices.length === 0 ? 'No invoices yet. Start by issuing your first invoice.' : 'No invoices found matching your search.'}
+                            </p>
+                            {invoices.length === 0 && (
+                              <Button onClick={handleNewInvoiceClick} variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
+                                Create Invoice
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ) : (
@@ -353,7 +372,18 @@ export const InvoicesPage: React.FC<InvoicesPageProps> = ({
               {/* Mobile */}
               <div className="md:hidden divide-y divide-[#F4F0EA]">
                 {filteredInvoices.length === 0 ? (
-                  <div className="py-8 px-4 text-center text-xs text-[#8C8278]">No invoices found. Click "New Invoice" to issue one.</div>
+                  <div className="py-8 px-4 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <p className="text-xs" style={{ color: '#8C8278' }}>
+                        {invoices.length === 0 ? 'No invoices yet. Start by issuing your first invoice.' : 'No invoices found matching your search.'}
+                      </p>
+                      {invoices.length === 0 && (
+                        <Button onClick={handleNewInvoiceClick} variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
+                          Create Invoice
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 ) : (
                   paginatedInvoices.map(inv => (
                     <div key={inv.id} onClick={() => onSelectInvoice(inv.id)} className="p-3.5 hover:bg-[#F4F0EA] transition-colors cursor-pointer space-y-2.5">

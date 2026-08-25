@@ -34,12 +34,28 @@ export class InvoicesService {
     private readonly activitiesService: ActivitiesService,
   ) { }
 
-  private async getClientName(userId: string, clientId: string): Promise<string> {
+  /** Verify that the client exists and belongs to the authenticated user */
+  async validateClient(userId: string, clientId: string): Promise<any> {
+    if (!clientId || !Types.ObjectId.isValid(clientId)) {
+      throw new NotFoundException('Valid client ID is required');
+    }
     const client = await this.clientModel
       .findOne({ _id: new Types.ObjectId(clientId), userId: new Types.ObjectId(userId) })
       .lean()
       .exec() as any;
-    return client ? client.name : 'Unknown Client';
+    if (!client) {
+      throw new NotFoundException('Client not found or does not belong to user');
+    }
+    return client;
+  }
+
+  private async getClientName(userId: string, clientId: string): Promise<string> {
+    try {
+      const client = await this.validateClient(userId, clientId);
+      return client.name;
+    } catch {
+      return 'Unknown Client';
+    }
   }
 
   /** Per-user sequential invoice number: INV-YYYY-NNN */
@@ -52,10 +68,11 @@ export class InvoicesService {
     return `INV-${year}-${seq}`;
   }
 
-  private toResponse(invoice: InvoiceDocument, clientName: string): any {
-    const obj = invoice.toJSON();
+  toResponse(invoice: any, clientName: string): any {
+    const obj = invoice.toJSON ? invoice.toJSON() : { ...invoice };
     return {
       ...obj,
+      id: obj.id || String(invoice._id),
       clientId: String(obj.clientId),
       projectId: obj.projectId ? String(obj.projectId) : undefined,
       clientName,
@@ -64,7 +81,7 @@ export class InvoicesService {
       paidAt: obj.paidAt ? new Date(obj.paidAt).toISOString() : undefined,
       // Ensure items have an id field
       items: (obj.items || []).map((item: any, idx: number) => ({
-        id: item._id ? String(item._id) : String(idx),
+        id: item._id ? String(item._id) : (item.id || String(idx)),
         ...item,
         _id: undefined,
       })),
@@ -77,7 +94,12 @@ export class InvoicesService {
     clientId?: string,
   ): Promise<{ invoices: any[]; total: number }> {
     const query: any = { userId: new Types.ObjectId(userId) };
-    if (clientId) query.clientId = new Types.ObjectId(clientId);
+    if (clientId) {
+      if (!Types.ObjectId.isValid(clientId)) {
+        throw new NotFoundException('Invalid clientId');
+      }
+      query.clientId = new Types.ObjectId(clientId);
+    }
     if (search && search.trim()) {
       query.$or = [
         { invoiceNumber: { $regex: search.trim(), $options: 'i' } },
@@ -103,15 +125,42 @@ export class InvoicesService {
     return { invoices: enriched, total: enriched.length };
   }
 
+  async findByClient(userId: string, clientId: string): Promise<{ invoices: any[]; total: number }> {
+    const client = await this.validateClient(userId, clientId);
+    const invoices = await this.invoiceModel
+      .find({ userId: new Types.ObjectId(userId), clientId: new Types.ObjectId(clientId) })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    const enriched = invoices.map((inv) => this.toResponse(inv, client.name));
+    return { invoices: enriched, total: enriched.length };
+  }
+
   async findOne(userId: string, invoiceId: string): Promise<InvoiceDocument> {
+    if (!Types.ObjectId.isValid(invoiceId)) {
+      throw new NotFoundException('Invoice not found');
+    }
     const invoice = await this.invoiceModel.findById(invoiceId).exec();
     if (!invoice) throw new NotFoundException('Invoice not found');
     if (String(invoice.userId) !== userId) throw new ForbiddenException();
     return invoice;
   }
 
+  async findOneDetails(userId: string, invoiceId: string): Promise<any> {
+    const invoice = await this.findOne(userId, invoiceId);
+    const client = await this.validateClient(userId, String(invoice.clientId));
+    return {
+      invoice: this.toResponse(invoice, client.name),
+      client: {
+        ...client,
+        id: String(client._id),
+        _id: undefined,
+      },
+    };
+  }
+
   async create(userId: string, dto: CreateInvoiceDto): Promise<any> {
-    const clientName = await this.getClientName(userId, dto.clientId);
+    const client = await this.validateClient(userId, dto.clientId);
     const invoiceNumber = await this.generateInvoiceNumber(userId);
 
     // Calculate totals from items
@@ -127,8 +176,8 @@ export class InvoicesService {
     const invoice = new this.invoiceModel({
       userId: new Types.ObjectId(userId),
       invoiceNumber,
-      clientId: new Types.ObjectId(dto.clientId),
-      projectId: dto.projectId ? new Types.ObjectId(dto.projectId) : undefined,
+      clientId: new Types.ObjectId(client._id),
+      projectId: dto.projectId && Types.ObjectId.isValid(dto.projectId) ? new Types.ObjectId(dto.projectId) : undefined,
       issueDate: dto.issueDate ? parseDate(dto.issueDate) : new Date(),
       dueDate: parseDate(dto.dueDate),
       status: dto.status || 'Sent',
@@ -142,12 +191,20 @@ export class InvoicesService {
     });
 
     const saved = await invoice.save();
-    return { invoice: this.toResponse(saved, clientName) };
+    return { invoice: this.toResponse(saved, client.name) };
   }
 
   async update(userId: string, invoiceId: string, dto: UpdateInvoiceDto): Promise<any> {
     const invoice = await this.findOne(userId, invoiceId);
-    const clientName = await this.getClientName(userId, String(invoice.clientId));
+    let targetClientId = String(invoice.clientId);
+
+    if (dto.clientId && dto.clientId !== targetClientId) {
+      const newClient = await this.validateClient(userId, dto.clientId);
+      invoice.clientId = new Types.ObjectId(newClient._id) as any;
+      targetClientId = String(newClient._id);
+    }
+
+    const clientName = await this.getClientName(userId, targetClientId);
 
     if (dto.items) {
       const items = dto.items.map((item) => ({
@@ -166,6 +223,9 @@ export class InvoicesService {
     if (dto.dueDate) invoice.dueDate = parseDate(dto.dueDate) as any;
     if (dto.status) invoice.status = dto.status;
     if (dto.notes !== undefined) invoice.notes = dto.notes;
+    if (dto.projectId !== undefined) {
+      invoice.projectId = dto.projectId && Types.ObjectId.isValid(dto.projectId) ? new Types.ObjectId(dto.projectId) as any : undefined;
+    }
 
     const saved = await invoice.save();
     return { invoice: this.toResponse(saved, clientName) };

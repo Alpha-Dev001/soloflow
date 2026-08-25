@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Eye, EyeOff, Lock, Mail, ArrowRight, Sparkles, AlertCircle,
+  Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { AuthLayout } from '../components/auth/AuthLayout';
@@ -40,33 +40,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         body: JSON.stringify({ email: email.trim(), password })
       });
 
-      const data = await res.json();
+            const data = await res.json();
       if (!res.ok) {
         throw new Error(data.message || 'Invalid email or password.');
       }
 
-      onLoginSuccess(data.user, data.token || 'demo-token');
+      onLoginSuccess(data.user, data.token || '');
     } catch (err: any) {
       setErrorMessage(err.message || 'Unable to sign in. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'demo@soloflow.com', password: 'demo123' })
-      });
-      const data = await res.json();
-      onLoginSuccess(data.user, data.token || 'demo-token');
-    } catch (err) {
-      // Fallback if API unavailable
-      setErrorMessage('Could not reach the server. Make sure the backend is running.');
     } finally {
       setIsLoading(false);
     }
@@ -152,19 +133,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         </Button>
       </form>
 
-      {/* Quick Demo Login Option */}
+            {/* Sign-up link */}
       <div className="mt-6 pt-6 border-t border-[#F2EDE6] text-center">
-        <button
-          type="button"
-          onClick={handleDemoLogin}
-          disabled={isLoading}
-          className="w-full py-2.5 px-4 rounded-xl bg-[#F6F2EC] hover:bg-[#EFEBE4] text-[#4A3B32] text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-[#937A62]" />
-          <span>Continue with Demo Studio Account</span>
-        </button>
-
-        <p className="text-xs text-[#7A6E63] mt-5">
+        <p className="text-xs text-[#7A6E63]">
           Don't have an account?{' '}
           <button
             onClick={onNavigateRegister}

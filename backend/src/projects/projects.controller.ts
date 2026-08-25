@@ -34,6 +34,15 @@ export class ProjectsController {
     return this.projectsService.findAll(String(user._id), search, clientId);
   }
 
+  /** GET /api/projects/:id */
+  @Get(':id')
+  findOne(
+    @CurrentUser() user: UserDocument,
+    @Param('id') id: string,
+  ) {
+    return this.projectsService.findOneDetails(String(user._id), id);
+  }
+
   /** POST /api/projects */
   @Post()
   @HttpCode(HttpStatus.CREATED)

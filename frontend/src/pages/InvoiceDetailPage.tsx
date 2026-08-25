@@ -37,6 +37,14 @@ const T = {
   dark: '#2A2320'
 };
 
+/** Format an ISO/UTC date string into a readable date, with a safe fallback. */
+function fmtDate(value?: string | null): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export const InvoiceDetailPage: React.FC<InvoiceDetailPageProps> = ({
   invoiceId,
   clients,
@@ -46,14 +54,18 @@ export const InvoiceDetailPage: React.FC<InvoiceDetailPageProps> = ({
   const { showToast } = useToast();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await api.getInvoiceById(invoiceId);
       setInvoice(res.invoice);
     } catch (e) {
       console.error(e);
+      setInvoice(null);
+      setError('Unable to load this invoice. It may have been deleted or you may not have permission to view it.');
     } finally {
       setLoading(false);
     }
@@ -63,11 +75,117 @@ export const InvoiceDetailPage: React.FC<InvoiceDetailPageProps> = ({
     loadData();
   }, [invoiceId]);
 
-  if (loading || !invoice) {
+  if (loading) {
     return (
       <div className="space-y-4 max-w-4xl mx-auto">
-        <Skeleton className="h-4 w-24" />
-        <CardSkeleton lines={6} />
+        {/* Top bar: back link + action buttons */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <Skeleton className="h-4 w-20" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-28 rounded-lg" />
+            <Skeleton className="h-8 w-20 rounded-lg" />
+            <Skeleton className="h-8 w-20 rounded-lg" />
+          </div>
+        </div>
+
+        {/* Invoice document sheet */}
+        <Card padding="lg" className="space-y-6">
+          {/* Header: branding + meta */}
+          <div className="flex flex-col sm:flex-row justify-between gap-4 pb-4 border-b border-[#F4EFEA]">
+            <div className="flex items-start gap-3">
+              <Skeleton variant="circular" className="w-9 h-9" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="h-3 w-40" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
+            <div className="sm:text-right space-y-2">
+              <Skeleton className="h-6 w-32" />
+              <div className="flex sm:justify-end">
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-24 ml-auto" />
+            </div>
+          </div>
+
+          {/* Billed To + Payment terms */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+            <div className="sm:text-right space-y-1.5">
+              <Skeleton className="h-3 w-24 ml-auto" />
+              <Skeleton className="h-4 w-32 ml-auto" />
+              <Skeleton className="h-3 w-28 ml-auto" />
+            </div>
+          </div>
+
+          {/* Items table */}
+          <div className="overflow-hidden rounded-lg border border-[#F4EFEA]">
+            <div className="flex justify-between px-4 py-3 border-b border-[#F4EFEA]">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-10" />
+              <Skeleton className="h-3 w-10" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex justify-between px-4 py-3 border-b border-[#F4EFEA] last:border-0">
+                <Skeleton className={`h-3 ${i % 2 === 0 ? 'w-40' : 'w-32'}`} />
+                <Skeleton className="h-3 w-6" />
+                <Skeleton className="h-3 w-10" />
+                <Skeleton className="h-3 w-12" />
+              </div>
+            ))}
+          </div>
+
+          {/* Totals */}
+          <div className="flex justify-end">
+            <div className="w-full max-w-xs space-y-2">
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!invoice) {
+    // Not found / no permission / load failure — show a clear empty state
+    // instead of an endless blank skeleton.
+    return (
+      <div className="max-w-md mx-auto text-center py-16">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1 text-xs font-medium hover:underline cursor-pointer"
+          style={{ color: T.accent }}
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+          <span>Back to Invoices</span>
+        </button>
+        <div
+          className="mt-6 p-8 rounded-2xl border space-y-2"
+          style={{ backgroundColor: T.surface, borderColor: T.border }}
+        >
+          <div
+            className="mx-auto w-12 h-12 rounded-full flex items-center justify-center text-xl font-semibold"
+            style={{ backgroundColor: T.surfaceWarm, color: T.muted }}
+          >
+            !
+          </div>
+          <h2 className="text-base font-semibold" style={{ color: T.ink }}>Invoice Not Found</h2>
+          <p className="text-xs leading-relaxed" style={{ color: T.body }}>
+            {error || 'We couldn\u2019t find an invoice matching this link. It may have been removed, or you may not have access to it.'}
+          </p>
+          <Button onClick={onBack} variant="primary" size="sm" className="mt-3">
+            Go to Invoices
+          </Button>
+        </div>
       </div>
     );
   }
@@ -158,8 +276,8 @@ export const InvoiceDetailPage: React.FC<InvoiceDetailPageProps> = ({
               </Badge>
             </div>
             <div className="text-[11px] mt-2 space-y-0.5" style={{ color: T.muted }}>
-              <p>Issued: {invoice.issueDate}</p>
-              <p>Due: {invoice.dueDate}</p>
+              <p>Issued: {fmtDate(invoice.issueDate)}</p>
+              <p>Due: {fmtDate(invoice.dueDate)}</p>
             </div>
           </div>
         </div>

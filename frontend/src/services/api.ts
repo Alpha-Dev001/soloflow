@@ -6,7 +6,8 @@ import type {
   Invoice,
   DashboardMetrics,
   AnalyticsData,
-  CalendarEvent
+  CalendarEvent,
+  AiUsage
 } from '../types';
 
 const API_BASE = '/api';
@@ -107,6 +108,24 @@ export const api = {
   async getClientById(id: string): Promise<{ client: Client; projects: Project[]; proposals: Proposal[]; invoices: Invoice[] }> {
     const res = await apiFetch(`${API_BASE}/clients/${id}`);
     if (!res.ok) throw new Error('Client not found');
+    return res.json();
+  },
+
+  async getClientProjects(clientId: string): Promise<{ projects: Project[]; total: number }> {
+    const res = await apiFetch(`${API_BASE}/clients/${clientId}/projects`);
+    if (!res.ok) throw new Error('Failed to fetch client projects');
+    return res.json();
+  },
+
+  async getClientProposals(clientId: string): Promise<{ proposals: Proposal[]; total: number }> {
+    const res = await apiFetch(`${API_BASE}/clients/${clientId}/proposals`);
+    if (!res.ok) throw new Error('Failed to fetch client proposals');
+    return res.json();
+  },
+
+  async getClientInvoices(clientId: string): Promise<{ invoices: Invoice[]; total: number }> {
+    const res = await apiFetch(`${API_BASE}/clients/${clientId}/invoices`);
+    if (!res.ok) throw new Error('Failed to fetch client invoices');
     return res.json();
   },
 
@@ -214,12 +233,33 @@ export const api = {
     description: string;
     budget?: string | number;
     tone?: string;
-  }): Promise<{ proposal: any }> {
+  }): Promise<{ proposal: any; usage?: AiUsage }> {
     const res = await apiFetch(`${API_BASE}/proposals/generate`, {
       method: 'POST',
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error('Failed to generate proposal with AI');
+    if (!res.ok) {
+      let body: any = {};
+      try {
+        body = await res.json();
+      } catch {
+        // ignore parse failures
+      }
+      const err: any = new Error(body?.message || 'Failed to generate proposal with AI');
+      // Carry structured quota info so the UI can show a precise message.
+      if (res.status === 429) {
+        err.status = 429;
+        err.quota = body;
+      }
+      throw err;
+    }
+        return res.json();
+  },
+
+  /** Current user's daily AI usage (quota). */
+  async getAiUsage(): Promise<AiUsage> {
+    const res = await apiFetch(`${API_BASE}/ai/usage`);
+    if (!res.ok) throw new Error('Failed to fetch AI usage');
     return res.json();
   },
 

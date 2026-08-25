@@ -2,8 +2,6 @@ import React from 'react';
 import {
   LineChart,
   Line,
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   XAxis,
@@ -14,7 +12,8 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell,
+  LabelList
 } from 'recharts';
 
 /* ── Design tokens (matched to dashboard) ── */
@@ -56,21 +55,38 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
   height = 320,
   showTarget = false
 }) => {
-  if (!data || data.length === 0) {
+  const hasNoRevenue = !data || data.length === 0 || data.every(d => !d.amount);
+  if (hasNoRevenue) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 rounded-xl border border-dashed" style={{ borderColor: T.borderStrong, backgroundColor: T.bg }}>
-        <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: T.border }}>
-          <svg className="w-6 h-6" style={{ color: T.borderStrong }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
+      <div
+        className="flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center"
+        style={{ borderColor: T.borderStrong, backgroundColor: T.bg, minHeight: Math.min(height, 280) }}
+      >
+        {/* Decorative ghost bars — communicates what the chart will become */}
+        <div className="flex items-end gap-1.5 mb-4" aria-hidden>
+          {[28, 44, 36, 58, 46, 68].map((h, i) => (
+            <div
+              key={i}
+              className="w-6 rounded-t-md"
+              style={{
+                height: h,
+                backgroundColor: i === 5 ? 'rgba(130,105,78,0.35)' : 'rgba(179,156,130,0.18)',
+              }}
+            />
+          ))}
         </div>
-        <p className="text-sm font-semibold mb-1" style={{ color: T.ink }}>No revenue data yet</p>
-        <p className="text-xs" style={{ color: T.muted }}>Record paid invoices to see your chart</p>
+        <p className="text-sm font-semibold mb-1" style={{ color: T.ink }}>
+          Your earnings chart starts here
+        </p>
+        <p className="text-xs max-w-xs leading-relaxed" style={{ color: T.muted }}>
+          As soon as an invoice is marked <span className="font-semibold" style={{ color: T.accent }}>Paid</span>,
+          your monthly earnings build this chart automatically.
+        </p>
       </div>
     );
   }
 
-  const maxValue = Math.max(...data.map(d => d.amount), 1);
+    const maxValue = Math.max(...data.map(d => d.amount), 1);
   const formatCurrency = (value: number) => {
     if (value >= 1000) {
       return `${currency}${(value / 1000).toFixed(1)}k`;
@@ -78,38 +94,17 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
     return `${currency}${value}`;
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg shadow-lg px-3 py-2 border" style={{ backgroundColor: T.surface, borderColor: T.borderStrong }}>
-          <p className="text-xs font-semibold mb-1" style={{ color: T.muted }}>{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm font-bold" style={{ color: entry.color }}>
-              {entry.name}: {formatCurrency(entry.value)}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
+  // Full month names for the tooltip ("Jan" -> "January")
+  const FULL_MONTHS: Record<string, string> = {
+    Jan: 'January', Feb: 'February', Mar: 'March', Apr: 'April', May: 'May',
+    Jun: 'June', Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October',
+    Nov: 'November', Dec: 'December'
   };
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={T.accent} stopOpacity={0.3} />
-            <stop offset="95%" stopColor={T.accent} stopOpacity={0} />
-          </linearGradient>
-          {showTarget && (
-            <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={T.success} stopOpacity={0.2} />
-              <stop offset="95%" stopColor={T.success} stopOpacity={0} />
-            </linearGradient>
-          )}
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={T.border} />
+      <BarChart data={data} margin={{ top: 24, right: 10, left: 0, bottom: 0 }} barCategoryGap="28%">
+        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke={T.border} />
         <XAxis
           dataKey="month"
           axisLine={false}
@@ -117,42 +112,31 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
           tick={{ fontSize: 11, fill: T.muted }}
           dy={10}
         />
-        <YAxis
-          axisLine={false}
-          tickLine={false}
-          tick={{ fontSize: 11, fill: T.muted }}
-          tickFormatter={formatCurrency}
-          width={45}
+        <YAxis hide domain={[0, maxValue * 1.15]} />
+        <Tooltip
+          cursor={{ fill: 'rgba(130,105,78,0.06)' }}
+          content={({ active, payload, label }: any) => {
+            if (active && payload && payload.length) {
+              return (
+                <div className="rounded-xl shadow-lg px-3.5 py-2.5 border" style={{ backgroundColor: T.surface, borderColor: T.borderStrong }}>
+                  <p className="text-[11px] font-semibold" style={{ color: T.muted }}>{FULL_MONTHS[label] || label}</p>
+                  <p className="text-sm font-bold mt-0.5" style={{ color: T.accent }}>
+                    {formatCurrency(payload[0].value)} earned
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          }}
         />
-        <Tooltip content={<CustomTooltip />} />
-        <Legend
-          wrapperStyle={{ fontSize: '11px', color: T.muted }}
-          iconType="circle"
-        />
-        <Area
-          type="monotone"
-          dataKey="amount"
-          name="Revenue"
-          stroke={T.accent}
-          strokeWidth={2.5}
-          fillOpacity={1}
-          fill="url(#colorRevenue)"
-          connectNulls={false}
-        />
-        {showTarget && data.some(d => d.target !== undefined) && (
-          <Area
-            type="monotone"
-            dataKey="target"
-            name="Target"
-            stroke={T.success}
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            fillOpacity={1}
-            fill="url(#colorTarget)"
-            connectNulls={false}
-          />
-        )}
-      </AreaChart>
+        {/* Value labels above each bar — readable at a glance, no axis math needed */}
+        <LabelList dataKey="amount" position="top" formatter={(v: any) => formatCurrency(Number(v))} style={{ fontSize: 10, fill: T.body, fontWeight: 600 }} />
+        <Bar dataKey="amount" radius={[6, 6, 0, 0]} maxBarSize={44}>
+          {data.map((entry, i) => (
+            <Cell key={i} fill={i === data.length - 1 ? T.dark : T.accentSoft} />
+          ))}
+        </Bar>
+      </BarChart>
     </ResponsiveContainer>
   );
 };

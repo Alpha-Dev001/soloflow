@@ -14,6 +14,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { AiModule } from './ai/ai.module';
+import { AiUsageModule } from './ai-usage/ai-usage.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { AiModule } from './ai/ai.module';
     DashboardModule,
     ActivitiesModule,
     AiModule,
+    AiUsageModule,
   ],
 })
 export class AppModule {}

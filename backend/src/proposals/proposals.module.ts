@@ -6,6 +6,7 @@ import { ProposalsService } from './proposals.service';
 import { ActivitiesModule } from '../activities/activities.module';
 import { Client, ClientSchema } from '../clients/client.schema';
 import { AiModule } from '../ai/ai.module';
+import { AiUsageModule } from '../ai-usage/ai-usage.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AiModule } from '../ai/ai.module';
     ]),
     ActivitiesModule,
     AiModule,
+    AiUsageModule,
   ],
   controllers: [ProposalsController],
   providers: [ProposalsService],

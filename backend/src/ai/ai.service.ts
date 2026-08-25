@@ -23,6 +23,12 @@ export interface ProposalPromptData {
   tone?: string;
 }
 
+export interface GenerateProposalResult {
+  proposal: any;
+  /** True only when Gemini returned a valid structured proposal. */
+  success: boolean;
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -44,7 +50,7 @@ export class AiService {
     return this.aiClient;
   }
 
-  async generateProposal(data: ProposalPromptData): Promise<any> {
+  async generateProposal(data: ProposalPromptData): Promise<GenerateProposalResult> {
     const ai = this.getClient();
 
     const budgetNum =
@@ -54,7 +60,7 @@ export class AiService {
 
     if (!ai) {
       this.logger.warn('Gemini client not available — using template fallback');
-      return this.proposalFallback(data, budgetNum);
+      return { proposal: this.proposalFallback(data, budgetNum), success: false };
     }
 
     const prompt = `You are an elite freelance proposal specialist.
@@ -102,7 +108,9 @@ Tone: ${data.tone || 'Professional'}`;
           const text = response.text?.trim() || '';
           if (text) {
             const parsed = JSON.parse(text);
-            if (parsed?.title && parsed?.scopeOfWork) return parsed;
+            if (parsed?.title && parsed?.scopeOfWork) {
+              return { proposal: parsed, success: true };
+            }
           }
         } catch (err: any) {
           this.logger.warn(`Proposal generation failed (${model}, attempt ${attempt + 1}): ${err?.message}`);
@@ -111,7 +119,7 @@ Tone: ${data.tone || 'Professional'}`;
       }
     }
 
-    return this.proposalFallback(data, budgetNum);
+    return { proposal: this.proposalFallback(data, budgetNum), success: false };
   }
 
   async chat(message: string, context?: any): Promise<string> {

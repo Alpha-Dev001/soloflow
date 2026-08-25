@@ -273,6 +273,9 @@ function AppContent() {
         if (page === 'client-detail' && param) path = `/clients/${encodeURIComponent(param)}`;
         if (page === 'invoice-detail' && param) path = `/invoices/${encodeURIComponent(param)}`;
         if (page === 'proposal-detail' && param) path = `/proposals/${encodeURIComponent(param)}/edit`;
+        if (page === 'proposal-new' && param) path = `/proposals/new?clientId=${encodeURIComponent(param)}`;
+        if (page === 'projects' && param) path = `/projects?clientId=${encodeURIComponent(param)}`;
+        if (page === 'invoices' && param) path = `/invoices?clientId=${encodeURIComponent(param)}`;
         navigate(path || '/dashboard');
     };
 

@@ -30,6 +30,17 @@ function transformDocument(obj: any): any {
 
   if (typeof obj !== 'object') return obj;
 
+  // Preserve non-plain instances instead of folding them into `{}`.
+  // - Dates: keep as Date so the standard JSON serializer emits an ISO string.
+  // - ObjectId / other BSON types: keep so JSON.stringify produces the hex string.
+  // Without this, a Date has no enumerable own keys and would be flattened to an
+  // empty object `{}` (which React then rejects as a child with "objects are not
+  // valid as a React child (found: object with keys {})").
+  if (obj instanceof Date) return obj;
+  if (typeof obj.toHexString === 'function') return obj.toHexString();
+  const proto = Object.getPrototypeOf(obj);
+  if (proto !== Object.prototype && proto !== null) return obj;
+
   const transformed: any = {};
   for (const key of Object.keys(obj)) {
     if (key === '__v') continue;
