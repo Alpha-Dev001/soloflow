@@ -3,10 +3,6 @@ import { IsString, IsOptional, IsNumber, IsIn, IsArray } from 'class-validator';
 export class UpdateProposalDto {
     @IsOptional()
     @IsString()
-    clientId?: string;
-
-    @IsOptional()
-    @IsString()
     projectId?: string;
 
     @IsOptional()

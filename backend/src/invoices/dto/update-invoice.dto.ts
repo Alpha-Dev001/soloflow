@@ -13,10 +13,6 @@ import { InvoiceItemDto } from './create-invoice.dto';
 export class UpdateInvoiceDto {
     @IsOptional()
     @IsString()
-    clientId?: string;
-
-    @IsOptional()
-    @IsString()
     projectId?: string;
 
     @IsOptional()

@@ -15,11 +15,11 @@ import { PLAN_DEFINITIONS } from '../entitlements/plan.constants';
 import { ConfirmCheckoutDto, CreateCheckoutDto } from './dto/checkout.dto';
 
 @Controller('subscriptions')
-@UseGuards(JwtAuthGuard)
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
   /** GET /api/subscriptions/me — current plan, entitlements, usage */
+  @UseGuards(JwtAuthGuard)
   @Get('me')
   async getMine(@CurrentUser() user: UserDocument) {
     const info = await this.subscriptionsService.getSubscriptionInfo(
@@ -44,6 +44,7 @@ export class SubscriptionsController {
   }
 
   /** POST /api/subscriptions/checkout — start simulated Pro upgrade */
+  @UseGuards(JwtAuthGuard)
   @Post('checkout')
   @HttpCode(HttpStatus.OK)
   async checkout(
@@ -54,6 +55,7 @@ export class SubscriptionsController {
   }
 
   /** POST /api/subscriptions/confirm — complete simulated payment */
+  @UseGuards(JwtAuthGuard)
   @Post('confirm')
   @HttpCode(HttpStatus.OK)
   async confirm(

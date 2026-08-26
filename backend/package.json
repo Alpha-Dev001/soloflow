@@ -8,6 +8,7 @@
     "start:dev": "ts-node -r tsconfig-paths/register src/main.ts",
     "start:nest": "nest start --watch",
     "seed": "ts-node -r tsconfig-paths/register src/database/seed/seed.ts",
+    "backup": "ts-node -r tsconfig-paths/register src/database/backup/backup.ts",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch"

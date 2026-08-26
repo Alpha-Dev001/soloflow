@@ -161,9 +161,18 @@ export class ProjectsService {
     };
   }
 
-  async create(user: UserDocument, dto: CreateProjectDto): Promise<any> {
+  /**
+   * Create a project inside an owned client.
+   * `clientId` comes from the route (never the body) and is re-validated
+   * against the authenticated user before anything is persisted.
+   */
+  async create(
+    user: UserDocument,
+    clientId: string,
+    dto: CreateProjectDto,
+  ): Promise<any> {
     const userId = String(user._id);
-    const client = await this.validateClient(userId, dto.clientId);
+    const client = await this.validateClient(userId, clientId);
     const status = dto.status || 'To Do';
 
     if (ACTIVE_PROJECT_STATUSES.includes(status)) {
@@ -201,15 +210,8 @@ export class ProjectsService {
 
   async update(userId: string, projectId: string, dto: UpdateProjectDto): Promise<any> {
     const project = await this.findOne(userId, projectId);
-    let targetClientId = String(project.clientId);
-
-    if (dto.clientId && dto.clientId !== targetClientId) {
-      const newClient = await this.validateClient(userId, dto.clientId);
-      project.clientId = new Types.ObjectId(newClient._id) as any;
-      targetClientId = String(newClient._id);
-    }
-
-    const clientName = await this.getClientName(userId, targetClientId);
+    // A project is permanently bound to its client — it cannot be reassigned.
+    const clientName = await this.getClientName(userId, String(project.clientId));
 
     if (dto.title !== undefined) project.title = dto.title;
     if (dto.description !== undefined) project.description = dto.description;

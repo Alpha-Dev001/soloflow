@@ -34,6 +34,15 @@ export class InvoicesController {
     return this.invoicesService.findAll(String(user._id), search, clientId);
   }
 
+  /** POST /api/invoices */
+  @Post()
+  create(
+    @CurrentUser() user: UserDocument,
+    @Body() dto: CreateInvoiceDto,
+  ) {
+    return this.invoicesService.create(user, dto.clientId, dto);
+  }
+
   /** GET /api/invoices/:id */
   @Get(':id')
   async findOne(
@@ -41,16 +50,6 @@ export class InvoicesController {
     @Param('id') id: string,
   ) {
     return this.invoicesService.findOneDetails(String(user._id), id);
-  }
-
-  /** POST /api/invoices */
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  create(
-    @CurrentUser() user: UserDocument,
-    @Body() dto: CreateInvoiceDto,
-  ) {
-    return this.invoicesService.create(user, dto);
   }
 
   /** PUT /api/invoices/:id */

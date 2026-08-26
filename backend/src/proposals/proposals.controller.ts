@@ -30,7 +30,7 @@ export class ProposalsController {
     private readonly proposalsService: ProposalsService,
   ) {}
 
-  /** GET /api/proposals?search=&clientId= */
+  /** GET /api/proposals */
   @Get()
   findAll(
     @CurrentUser() user: UserDocument,
@@ -57,16 +57,6 @@ export class ProposalsController {
     @Param('id') id: string,
   ) {
     return this.proposalsService.findOneDetails(String(user._id), id);
-  }
-
-  /** POST /api/proposals */
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  create(
-    @CurrentUser() user: UserDocument,
-    @Body() dto: CreateProposalDto,
-  ) {
-    return this.proposalsService.create(String(user._id), dto);
   }
 
   /** PUT /api/proposals/:id */

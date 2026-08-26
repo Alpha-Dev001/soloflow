@@ -19,6 +19,7 @@ import { EntitlementsModule } from './entitlements/entitlements.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { AdminModule } from './admin/admin.module';
     ActivitiesModule,
     AiModule,
     AiUsageModule,
+    DatabaseModule,
   ],
 })
 export class AppModule {}

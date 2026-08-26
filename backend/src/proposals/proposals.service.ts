@@ -200,8 +200,8 @@ export class ProposalsService {
     };
   }
 
-  async create(userId: string, dto: CreateProposalDto): Promise<any> {
-    const client = await this.validateClient(userId, dto.clientId);
+  async create(userId: string, clientId: string, dto: CreateProposalDto): Promise<any> {
+    const client = await this.validateClient(userId, clientId);
     const proposalNumber = await this.generateProposalNumber(userId);
 
     const proposal = new this.proposalModel({
@@ -236,18 +236,10 @@ export class ProposalsService {
 
   async update(userId: string, proposalId: string, dto: UpdateProposalDto): Promise<any> {
     const proposal = await this.findOne(userId, proposalId);
-    let targetClientId = String(proposal.clientId);
-
-    if (dto.clientId && dto.clientId !== targetClientId) {
-      const newClient = await this.validateClient(userId, dto.clientId);
-      proposal.clientId = new Types.ObjectId(newClient._id) as any;
-      targetClientId = String(newClient._id);
-    }
-
-    const clientName = await this.getClientName(userId, targetClientId);
+    // A proposal is permanently bound to its client — it cannot be reassigned.
+    const clientName = await this.getClientName(userId, String(proposal.clientId));
 
     const fields: any = { ...dto };
-    if (dto.clientId) fields.clientId = new Types.ObjectId(targetClientId);
     if (dto.projectId) {
       fields.projectId = Types.ObjectId.isValid(dto.projectId) ? new Types.ObjectId(dto.projectId) : undefined;
     }

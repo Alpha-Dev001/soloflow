@@ -1,9 +1,6 @@
 import { IsString, IsOptional, IsNumber, IsIn, IsArray } from 'class-validator';
 
 export class CreateProposalDto {
-  @IsString()
-  clientId: string;
-
   @IsOptional()
   @IsString()
   projectId?: string;

@@ -235,9 +235,9 @@ export const Sidebar: FC<SidebarProps> = ({
                       style={
                         active
                           ? {
-                              background: 'linear-gradient(135deg, rgba(255,252,246,0.28) 0%, rgba(233,220,200,0.18) 100%)',
-                              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 2px 8px rgba(40,30,20,0.18)'
-                            }
+                            background: 'linear-gradient(135deg, rgba(255,252,246,0.28) 0%, rgba(233,220,200,0.18) 100%)',
+                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 2px 8px rgba(40,30,20,0.18)'
+                          }
                           : undefined
                       }
                       onMouseEnter={e => {
@@ -306,9 +306,8 @@ export const Sidebar: FC<SidebarProps> = ({
                   Plan
                 </span>
                 <span
-                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                    isPro ? 'bg-[#FBEED9] text-[#3E342B]' : 'bg-white/15 text-white/85'
-                  }`}
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${isPro ? 'bg-[#FBEED9] text-[#3E342B]' : 'bg-white/15 text-white/85'
+                    }`}
                 >
                   {isPro ? 'Pro' : 'Starter'}
                 </span>
@@ -335,9 +334,8 @@ export const Sidebar: FC<SidebarProps> = ({
                 onNavigate('admin');
                 onCloseMobile?.();
               }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium cursor-pointer ${
-                currentPage === 'admin' ? 'text-white bg-white/15' : 'text-white/75 hover:bg-white/10'
-              } ${isCollapsed ? 'justify-center' : ''}`}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium cursor-pointer ${currentPage === 'admin' ? 'text-white bg-white/15' : 'text-white/75 hover:bg-white/10'
+                } ${isCollapsed ? 'justify-center' : ''}`}
             >
               <Shield className="w-4 h-4" />
               {!isCollapsed && <span>Admin</span>}

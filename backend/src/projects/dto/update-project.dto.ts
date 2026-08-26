@@ -7,10 +7,6 @@ export class UpdateProjectDto {
 
   @IsOptional()
   @IsString()
-  clientId?: string;
-
-  @IsOptional()
-  @IsString()
   description?: string;
 
   @IsOptional()

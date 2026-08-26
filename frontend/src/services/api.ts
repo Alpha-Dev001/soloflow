@@ -265,7 +265,7 @@ export const api = {
       }
       throw err;
     }
-        return res.json();
+    return res.json();
   },
 
   /** Current user's daily AI usage (quota). */

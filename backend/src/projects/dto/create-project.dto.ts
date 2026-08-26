@@ -12,9 +12,6 @@ export class CreateProjectDto {
   @IsString()
   title: string;
 
-  @IsString()
-  clientId: string;
-
   @IsOptional()
   @IsString()
   description?: string;

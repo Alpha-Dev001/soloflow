@@ -5,10 +5,13 @@ import { ClientsController } from './clients.controller';
 import { ClientsService } from './clients.service';
 import { ActivitiesModule } from '../activities/activities.module';
 import { EntitlementsModule } from '../entitlements/entitlements.module';
-// Forward references for the detail endpoint
 import { Project, ProjectSchema } from '../projects/project.schema';
 import { Proposal, ProposalSchema } from '../proposals/proposal.schema';
 import { Invoice, InvoiceSchema } from '../invoices/invoice.schema';
+// Resource modules provide the services used for client-scoped creation
+import { ProjectsModule } from '../projects/projects.module';
+import { ProposalsModule } from '../proposals/proposals.module';
+import { InvoicesModule } from '../invoices/invoices.module';
 
 @Module({
   imports: [
@@ -20,6 +23,9 @@ import { Invoice, InvoiceSchema } from '../invoices/invoice.schema';
     ]),
     ActivitiesModule,
     EntitlementsModule,
+    ProjectsModule,
+    ProposalsModule,
+    InvoicesModule,
   ],
   controllers: [ClientsController],
   providers: [ClientsService],

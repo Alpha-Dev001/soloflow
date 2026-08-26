@@ -22,7 +22,7 @@ import { UpdateProjectDto, UpdateProjectStatusDto } from './dto/update-project.d
 @Controller('projects')
 @UseGuards(JwtAuthGuard)
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(private readonly projectsService: ProjectsService) { }
 
   /** GET /api/projects?search=&clientId= */
   @Get()
@@ -41,16 +41,6 @@ export class ProjectsController {
     @Param('id') id: string,
   ) {
     return this.projectsService.findOneDetails(String(user._id), id);
-  }
-
-  /** POST /api/projects */
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  create(
-    @CurrentUser() user: UserDocument,
-    @Body() dto: CreateProjectDto,
-  ) {
-    return this.projectsService.create(user, dto);
   }
 
   /** PUT /api/projects/:id */

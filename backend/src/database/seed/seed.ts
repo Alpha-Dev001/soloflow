@@ -1,15 +1,29 @@
 /**
- * Development / demo seed script.
+ * Development seed script — client-centered architecture.
  *
  * Run with:  npm run seed   (from backend/ directory)
  *
- * Drops all existing data for the seed user and populates:
- *  - 1 demo user
- *  - 5 clients
- *  - 4 projects
- *  - 3 proposals
- *  - 3 invoices
- *  - 3 calendar events
+ * The core seeding logic is exported as `runSeed(db)` so the dev-only
+ * POST /api/seed/reset endpoint can reuse it without duplicating anything.
+ *
+ * RESETS the development database (the MONGODB_URI in backend/.env) and
+ * populates a controlled dataset that follows the client-centered model:
+ *
+ *  demo@soloflow.com / demo123 (Pro freelancer)
+ *  ├── Acme Ltd
+ *  │    ├── Website Redesign (project)
+ *  │    ├── Website Proposal (proposal → project)
+ *  │    ├── INV-2026-001 (Paid, → project)
+ *  │    └── INV-2026-002 (Sent)
+ *  └── Kigali Tech
+ *       ├── Mobile App (project)
+ *       ├── Mobile App Proposal (proposal)
+ *       └── INV-2026-003 (Overdue)
+ *
+ *  other@soloflow.com / other123 — isolation-test user with their own client,
+ *  used to verify cross-user access is impossible.
+ *
+ *  admin@soloflow.com / admin123 — platform admin.
  */
 
 import * as mongoose from 'mongoose';
@@ -23,13 +37,7 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 const MONGODB_URI =
   process.env.MONGODB_URI || 'mongodb://localhost:27017/soloflow';
 
-async function seed() {
-  console.log('🌱 Connecting to MongoDB...');
-  await mongoose.connect(MONGODB_URI);
-  console.log('✅ Connected');
-
-  const db = mongoose.connection.db!;
-
+export async function runSeed(db: mongoose.mongo.Db): Promise<void> {
   // ── Collections ──
   const users = db.collection('users');
   const clients = db.collection('clients');
@@ -39,23 +47,33 @@ async function seed() {
   const calendar = db.collection('calendarevents');
   const activities = db.collection('activities');
 
-  // Remove previous seed data for the demo user
-  const existing = await users.findOne({ email: 'demo@soloflow.com' });
-  if (existing) {
-    const uid = existing._id;
-    await Promise.all([
-      clients.deleteMany({ userId: uid }),
-      projects.deleteMany({ userId: uid }),
-      proposals.deleteMany({ userId: uid }),
-      invoices.deleteMany({ userId: uid }),
-      calendar.deleteMany({ userId: uid }),
-      activities.deleteMany({ userId: uid }),
-      users.deleteOne({ _id: uid }),
-    ]);
-    console.log('🗑  Removed previous seed data');
-  }
+  // ── FULL DEVELOPMENT RESET ──
+  // This script only ever runs against the development database configured
+  // in backend/.env. Take a snapshot first with `npm run backup`.
+  await Promise.all([
+    clients.deleteMany({}),
+    projects.deleteMany({}),
+    proposals.deleteMany({}),
+    invoices.deleteMany({}),
+    calendar.deleteMany({}),
+    activities.deleteMany({}),
+  ]);
+  await Promise.all([
+    users.deleteMany({ email: 'demo@soloflow.com' }),
+    users.deleteMany({ email: 'admin@soloflow.com' }),
+    users.deleteMany({ email: 'other@soloflow.com' }),
+  ]);
+  console.log('🗑  Development collections cleared');
 
-  // ── Demo User (Pro freelancer) ──
+  const now = new Date();
+  const year = now.getFullYear();
+  const days = (n: number) => new Date(now.getTime() + n * 24 * 60 * 60 * 1000);
+  // First day of `offsetMonths` months ago (keeps paidAt inside the dashboard's
+  // 6-month rolling window described in dashboard.service).
+  const pastMonth = (offsetMonths: number, day = 15) =>
+    new Date(now.getFullYear(), now.getMonth() - offsetMonths, day, 12, 0, 0);
+
+  // ══ Users ══
   const passwordHash = await bcrypt.hash('demo123', 12);
   const userResult = await users.insertOne({
     name: 'Demo User',
@@ -67,18 +85,30 @@ async function seed() {
     plan: 'pro',
     subscriptionStatus: 'active',
     accountStatus: 'active',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: now,
+    updatedAt: now,
   });
   const userId = userResult.insertedId;
   console.log('👤 Created demo user: demo@soloflow.com / demo123 (Pro)');
 
-  // ── Admin User (platform owner) ──
+  const otherHash = await bcrypt.hash('other123', 12);
+  const otherResult = await users.insertOne({
+    name: 'Other Freelancer',
+    email: 'other@soloflow.com',
+    passwordHash: otherHash,
+    businessName: 'Other Studio',
+    currency: 'USD',
+    role: 'USER',
+    plan: 'pro',
+    subscriptionStatus: 'active',
+    accountStatus: 'active',
+    createdAt: now,
+    updatedAt: now,
+  });
+  const otherUserId = otherResult.insertedId;
+  console.log('👤 Created isolation-test user: other@soloflow.com / other123');
+
   const adminHash = await bcrypt.hash('admin123', 12);
-  const existingAdmin = await users.findOne({ email: 'admin@soloflow.com' });
-  if (existingAdmin) {
-    await users.deleteOne({ _id: existingAdmin._id });
-  }
   await users.insertOne({
     name: 'SoloFlow Admin',
     email: 'admin@soloflow.com',
@@ -89,12 +119,12 @@ async function seed() {
     plan: 'pro',
     subscriptionStatus: 'active',
     accountStatus: 'active',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: now,
+    updatedAt: now,
   });
   console.log('🛡  Created admin user: admin@soloflow.com / admin123');
 
-  // Starter subscription for demo is Pro
+  // Pro subscription for the demo user
   const subscriptions = db.collection('subscriptions');
   await subscriptions.deleteMany({ userId });
   await subscriptions.insertOne({
@@ -110,330 +140,215 @@ async function seed() {
     updatedAt: new Date(),
   });
 
-  // ── Clients ──
-  const now = new Date();
-  const clientDocs = [
-    { name: 'Acme Corporation', company: 'acme.com', email: 'contact@acme.com', phone: '+1 (888) 123-4567', website: 'https://acme.com', status: 'Active', tier: 'Enterprise', country: 'US', notes: 'Key long-term client. Prefers modern design.' },
-    { name: 'Bright Labs', company: 'brightlabs.io', email: 'hello@brightlabs.io', phone: '+1 (415) 555-0192', website: 'https://brightlabs.io', status: 'Active', tier: 'Startup', country: 'US', notes: 'Fast-paced team. Weekly syncs preferred.' },
-    { name: 'Visionary Studios', company: 'visionary.com', email: 'hi@visionary.com', phone: '+1 (310) 555-4321', website: 'https://visionary.com', status: 'Active', tier: 'SMB', country: 'US', notes: '' },
-    { name: 'Nova Labs', company: 'novalabs.io', email: 'team@novalabs.io', website: 'https://novalabs.io', status: 'Lead', tier: 'Startup', country: 'US', notes: '' },
-    { name: 'Zenith Studios', company: 'zenith.com', email: 'team@zenith.com', website: 'https://zenith.com', status: 'Active', tier: 'Startup', country: 'US', notes: '' },
-  ].map(c => ({ ...c, userId, phone: c.phone || '', address: '', createdAt: now, updatedAt: now }));
+  // ══ Clients ══
+  const clientRes = await clients.insertMany([
+    {
+      userId,
+      name: 'Acme Ltd',
+      company: 'acme-ltd.com',
+      email: 'contact@acmeltd.com',
+      phone: '+1 (888) 123-4567',
+      website: 'https://acme-ltd.com',
+      address: '',
+      status: 'Active',
+      tier: 'Enterprise',
+      country: 'US',
+      notes: 'Key long-term client. Prefers modern design and weekly summaries.',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      userId,
+      name: 'Kigali Tech',
+      company: 'kigalitech.rw',
+      email: 'hello@kigalitech.rw',
+      phone: '+250 788 000 111',
+      website: 'https://kigalitech.rw',
+      address: '',
+      status: 'Active',
+      tier: 'Startup',
+      country: 'RW',
+      notes: 'Fast-moving startup. Invoice via bank transfer.',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      // Isolation-test data — belongs to the OTHER user, must never leak
+      userId: otherUserId,
+      name: 'Other Client Co',
+      company: 'otherclient.com',
+      email: 'team@otherclient.com',
+      phone: '',
+      website: '',
+      address: '',
+      status: 'Active',
+      tier: 'SMB',
+      country: 'US',
+      notes: '',
+      createdAt: now,
+      updatedAt: now,
+    },
+  ]);
+  const [acmeId, kigaliId] = [clientRes.insertedIds[0], clientRes.insertedIds[1]];
+  console.log('🏢 Created 3 clients (2 for demo, 1 for isolation test)');
 
-  const clientRes = await clients.insertMany(clientDocs);
-  const [acmeId, brightId, visionaryId, novaId, zenithId] = Object.values(clientRes.insertedIds);
-  console.log('🏢 Created 5 clients');
-
-  // ── Projects ──
-  const projectDocs = [
+  // ══ Projects ══
+  const projectRes = await projects.insertMany([
     {
       userId,
       clientId: acmeId,
-      title: 'Mobile App UI Design',
-      description: 'Complete UI/UX overhaul for the Acme mobile application.',
+      title: 'Website Redesign',
+      description: 'Full redesign of the Acme marketing website with a modern design system.',
       budget: 4850,
       priority: 'High',
       status: 'In Progress',
-      deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 2 weeks from now
-      tags: ['design', 'mobile'],
+      deadline: days(14),
+      tags: ['design', 'web'],
       tasks: [],
-      createdAt: now,
+      createdAt: pastMonth(1, 5),
       updatedAt: now,
     },
     {
       userId,
-      clientId: brightId,
-      title: 'Brand Identity Redesign',
-      description: 'Logo, typography, and full brand guidelines refresh.',
-      budget: 3200,
+      clientId: kigaliId,
+      title: 'Mobile App',
+      description: 'Cross-platform mobile app for Kigali Tech customers.',
+      budget: 6200,
       priority: 'Medium',
       status: 'To Do',
-      deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      tags: ['branding'],
+      deadline: days(30),
+      tags: ['mobile'],
       tasks: [],
-      createdAt: now,
+      createdAt: pastMonth(0, 8),
       updatedAt: now,
     },
     {
-      userId,
-      clientId: visionaryId,
-      title: 'Marketing Website',
-      description: 'Responsive landing page and product pages.',
-      budget: 5500,
-      priority: 'High',
-      status: 'In Progress',
-      deadline: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000), // 3 weeks
-      tags: ['web', 'design'],
-      tasks: [],
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      userId,
-      clientId: zenithId,
-      title: 'E-commerce Website',
-      description: 'Full Shopify store with custom theme development.',
-      budget: 6200,
+      // Isolation-test data for the OTHER user
+      userId: otherUserId,
+      clientId: clientRes.insertedIds[2],
+      title: 'Secret Project',
+      description: 'Must never be visible to the demo user.',
+      budget: 9999,
       priority: 'Urgent',
-      status: 'Completed',
-      deadline: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
-      tags: ['web', 'ecommerce'],
+      status: 'In Progress',
+      deadline: days(10),
+      tags: [],
       tasks: [],
       createdAt: now,
       updatedAt: now,
     },
-  ];
+  ]);
+  const acmeProjectId = projectRes.insertedIds[0];
+  console.log('📁 Created 3 projects (2 for demo, 1 for isolation test)');
 
-  const projectRes = await projects.insertMany(projectDocs);
-  const [proj1Id, , proj3Id] = Object.values(projectRes.insertedIds);
-  console.log('📁 Created 4 projects');
-
-  // ── Proposals ──
-  const proposalDocs = [
+  // ══ Proposals ══
+  await proposals.insertMany([
     {
       userId,
-      proposalNumber: 'PROP-2024-001',
+      proposalNumber: `PROP-${year}-001`,
       clientId: acmeId,
-      projectId: proj1Id,
-      title: 'Proposal for Acme Corporation',
+      projectId: acmeProjectId,
+      title: 'Website Redesign Proposal',
       amount: 4850,
-      status: 'Sent',
-      tone: 'Professional',
-      overview: 'This proposal outlines the UI/UX design services for the Acme mobile application.',
-      scopeOfWork: ['User Research & Analysis', 'Wireframes & User Flows', 'High-Fidelity UI Design', 'Interactive Prototypes', 'Design System & Style Guide'],
-      deliverables: ['Complete UI Design Files (Figma)', 'Interactive Prototype', 'Design System & Assets', 'Handoff Documentation'],
-      timeline: 'Estimated project duration: 3–4 weeks from project kickoff.',
-      investment: 'Total Project Cost: $4,850 USD. Payment Terms: 50% upfront, 50% upon completion.',
-      terms: '',
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      userId,
-      proposalNumber: 'PROP-2024-002',
-      clientId: visionaryId,
-      projectId: proj3Id,
-      title: 'Proposal for Visionary Studios',
-      amount: 5500,
       status: 'Accepted',
       tone: 'Professional',
-      overview: 'Marketing website development with responsive design and CMS integration.',
-      scopeOfWork: ['Discovery & Requirements', 'UX Design & Wireframes', 'Frontend Development', 'CMS Integration', 'Testing & Launch'],
-      deliverables: ['Fully responsive website', 'CMS setup', 'SEO foundations', '30-day support'],
-      timeline: 'Estimated Delivery: 4–5 weeks from project kickoff.',
-      investment: 'Total Project Cost: $5,500. Payment Terms: 50% upfront, 50% on delivery.',
-      terms: '',
-      createdAt: now,
-      updatedAt: now,
+      overview:
+        'A complete overhaul of the Acme marketing site — modern visuals, faster load times and a conversion-focused structure.',
+      scopeOfWork: ['Discovery & wireframes', 'Visual design', 'Front-end build', 'Launch support'],
+      deliverables: ['Figma design files', 'Responsive build', 'CMS setup'],
+      timeline: '4 weeks',
+      investment: '$4,850',
+      terms: '50% upfront, 50% on delivery.',
+      createdAt: pastMonth(1, 3),
+      updatedAt: pastMonth(1, 6),
     },
     {
       userId,
-      proposalNumber: 'PROP-2024-003',
-      clientId: novaId,
-      title: 'Proposal for Nova Labs',
-      amount: 3800,
-      status: 'Draft',
-      tone: 'Friendly',
-      overview: 'Consultation and prototype development for AI interface exploration.',
-      scopeOfWork: ['Product Discovery', 'User Journey Mapping', 'Prototype Development', 'Usability Testing'],
-      deliverables: ['Clickable Prototype', 'Research Report', 'Next Steps Roadmap'],
-      timeline: 'Estimated Delivery: 2–3 weeks.',
-      investment: 'Total Project Cost: $3,800. Payment Terms: 100% upfront for discovery phase.',
-      terms: '',
-      createdAt: now,
-      updatedAt: now,
-    },
-  ];
-
-  await proposals.insertMany(proposalDocs);
-  console.log('📄 Created 3 proposals');
-
-  // ── Invoices ──
-  // Helper: first day of `offsetMonths` months ago (used so paidAt always lands
-  // inside the dashboard's 6-month rolling window described in dashboard.service).
-  const pastMonth = (offsetMonths: number, day = 15) =>
-    new Date(now.getFullYear(), now.getMonth() - offsetMonths, day, 12, 0, 0);
-
-  const invoiceDocs = [
-    {
-      userId,
-      invoiceNumber: 'INV-2024-001',
-      clientId: brightId,
-      projectId: proj1Id,
-      issueDate: pastMonth(5, 2),
-      dueDate: pastMonth(5, 12),
-      status: 'Paid',
-      paidAt: pastMonth(5, 10),
-      items: [{ description: 'Brand exploration — Discovery phase', quantity: 1, unitPrice: 1850, amount: 1850 }],
-      subtotal: 1850,
-      taxRate: 0,
-      taxAmount: 0,
-      total: 1850,
-      currency: 'USD',
-      notes: '',
-      createdAt: pastMonth(5, 2),
-      updatedAt: pastMonth(5, 10),
-    },
-    {
-      userId,
-      invoiceNumber: 'INV-2024-002',
-      clientId: visionaryId,
-      projectId: proj3Id,
-      issueDate: pastMonth(4, 3),
-      dueDate: pastMonth(4, 13),
-      status: 'Paid',
-      paidAt: pastMonth(4, 11),
-      items: [{ description: 'Marketing Website — Deposit (50%)', quantity: 1, unitPrice: 2750, amount: 2750 }],
-      subtotal: 2750,
-      taxRate: 0,
-      taxAmount: 0,
-      total: 2750,
-      currency: 'USD',
-      notes: '',
-      createdAt: pastMonth(4, 3),
-      updatedAt: pastMonth(4, 11),
-    },
-    {
-      userId,
-      invoiceNumber: 'INV-2024-003',
-      clientId: acmeId,
-      projectId: proj1Id,
-      issueDate: pastMonth(3, 5),
-      dueDate: pastMonth(3, 15),
-      status: 'Paid',
-      paidAt: pastMonth(3, 13),
-      items: [{ description: 'Mobile App UI — Milestone 1', quantity: 1, unitPrice: 3200, amount: 3200 }],
-      subtotal: 3200,
-      taxRate: 0,
-      taxAmount: 0,
-      total: 3200,
-      currency: 'USD',
-      notes: '',
-      createdAt: pastMonth(3, 5),
-      updatedAt: pastMonth(3, 13),
-    },
-    {
-      userId,
-      invoiceNumber: 'INV-2024-004',
-      clientId: novaId,
-      issueDate: pastMonth(2, 6),
-      dueDate: pastMonth(2, 16),
-      status: 'Paid',
-      paidAt: pastMonth(2, 14),
-      items: [{ description: 'Web design sprint — Retainer', quantity: 1, unitPrice: 2750, amount: 2750 }],
-      subtotal: 2750,
-      taxRate: 0,
-      taxAmount: 0,
-      total: 2750,
-      currency: 'USD',
-      notes: '',
-      createdAt: pastMonth(2, 6),
-      updatedAt: pastMonth(2, 14),
-    },
-    {
-      userId,
-      invoiceNumber: 'INV-2024-005',
-      clientId: zenithId,
-      issueDate: pastMonth(1, 7),
-      dueDate: pastMonth(1, 17),
-      status: 'Paid',
-      paidAt: pastMonth(1, 15),
-      items: [{ description: 'E-commerce Development — Deposit', quantity: 1, unitPrice: 3100, amount: 3100 }],
-      subtotal: 3100,
-      taxRate: 0,
-      taxAmount: 0,
-      total: 3100,
-      currency: 'USD',
-      notes: '',
-      createdAt: pastMonth(1, 7),
-      updatedAt: pastMonth(1, 15),
-    },
-    {
-      userId,
-      invoiceNumber: 'INV-2024-006',
-      clientId: visionaryId,
-      projectId: proj3Id,
-      issueDate: pastMonth(0, 3),
-      dueDate: pastMonth(0, 13),
-      status: 'Paid',
-      paidAt: pastMonth(0, 9),
-      items: [{ description: 'Marketing Website — Final Payment', quantity: 1, unitPrice: 2750, amount: 2750 }],
-      subtotal: 2750,
-      taxRate: 0,
-      taxAmount: 0,
-      total: 2750,
-      currency: 'USD',
-      notes: '',
-      createdAt: pastMonth(0, 3),
+      proposalNumber: `PROP-${year}-002`,
+      clientId: kigaliId,
+      title: 'Mobile App Proposal',
+      amount: 6200,
+      status: 'Sent',
+      tone: 'Professional',
+      overview: 'Cross-platform mobile app covering onboarding, payments and push notifications.',
+      scopeOfWork: ['UX flows', 'UI kit', 'React Native build'],
+      deliverables: ['iOS & Android builds', 'App store submission'],
+      timeline: '6 weeks',
+      investment: '$6,200',
+      terms: '40% upfront, milestones billed bi-weekly.',
+      createdAt: pastMonth(0, 7),
       updatedAt: pastMonth(0, 9),
     },
+  ]);
+  console.log('📄 Created 2 proposals');
+
+  // ══ Invoices ══
+  await invoices.insertMany([
     {
       userId,
-      invoiceNumber: 'INV-2024-007',
+      invoiceNumber: `INV-${year}-001`,
       clientId: acmeId,
-      projectId: proj1Id,
-      issueDate: pastMonth(0, 2),
-      dueDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+      projectId: acmeProjectId,
+      issueDate: pastMonth(1, 10),
+      dueDate: pastMonth(1, 24),
       status: 'Paid',
-      paidAt: pastMonth(0, 8),
-      items: [{ description: 'UI Design — Phase 1 Milestone', quantity: 1, unitPrice: 2425, amount: 2425 }],
+      paidAt: pastMonth(1, 22),
+      items: [{ description: 'Website Redesign — Milestone 1', quantity: 1, unitPrice: 2425, amount: 2425 }],
       subtotal: 2425,
       taxRate: 0,
       taxAmount: 0,
       total: 2425,
       currency: 'USD',
       notes: '',
-      createdAt: pastMonth(0, 2),
-      updatedAt: pastMonth(0, 8),
+      createdAt: pastMonth(1, 10),
+      updatedAt: pastMonth(1, 22),
     },
     {
       userId,
-      invoiceNumber: 'INV-2024-008',
+      invoiceNumber: `INV-${year}-002`,
       clientId: acmeId,
-      projectId: proj1Id,
-      issueDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      projectId: acmeProjectId,
+      issueDate: days(-3),
+      dueDate: days(14),
       status: 'Sent',
-      items: [{ description: 'UI Design — Phase 2 Kickoff', quantity: 1, unitPrice: 2425, amount: 2425 }],
+      items: [{ description: 'Website Redesign — Final Payment', quantity: 1, unitPrice: 2425, amount: 2425 }],
       subtotal: 2425,
       taxRate: 0,
       taxAmount: 0,
       total: 2425,
       currency: 'USD',
-      notes: '',
-      createdAt: now,
-      updatedAt: now,
+      notes: 'Payment due within 14 days.',
+      createdAt: days(-3),
+      updatedAt: days(-3),
     },
     {
       userId,
-      invoiceNumber: 'INV-2024-009',
-      clientId: zenithId,
-      issueDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-      dueDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+      invoiceNumber: `INV-${year}-003`,
+      clientId: kigaliId,
+      issueDate: days(-45),
+      dueDate: days(-15),
       status: 'Overdue',
-      items: [{ description: 'E-commerce Development — Final Payment', quantity: 1, unitPrice: 3100, amount: 3100 }],
-      subtotal: 3100,
+      items: [{ description: 'Mobile App — Discovery Phase', quantity: 1, unitPrice: 1500, amount: 1500 }],
+      subtotal: 1500,
       taxRate: 0,
       taxAmount: 0,
-      total: 3100,
+      total: 1500,
       currency: 'USD',
       notes: 'Please process payment at your earliest convenience.',
-      createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
+      createdAt: days(-45),
+      updatedAt: days(-15),
     },
-  ];
+  ]);
+  console.log('🧾 Created 3 invoices');
 
-  await invoices.insertMany(invoiceDocs);
-  console.log('🧾 Created 9 invoices');
-
-  // ── Calendar Events ──
+  // ══ Calendar Events ══
   await calendar.insertMany([
     {
       userId,
-      title: 'Kickoff Call — Bright Labs',
-      clientName: 'Bright Labs',
-      clientId: brightId,
-      date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      title: 'Kickoff Call — Kigali Tech',
+      clientName: 'Kigali Tech',
+      clientId: kigaliId,
+      date: days(3),
       type: 'meeting',
       description: 'Initial project kickoff and requirements gathering.',
       completed: false,
@@ -443,10 +358,10 @@ async function seed() {
     },
     {
       userId,
-      title: 'Design Review — Acme Corp',
-      clientName: 'Acme Corporation',
+      title: 'Design Review — Acme Ltd',
+      clientName: 'Acme Ltd',
       clientId: acmeId,
-      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      date: days(7),
       type: 'milestone',
       description: 'Present first-round design concepts.',
       completed: false,
@@ -457,11 +372,51 @@ async function seed() {
   ]);
   console.log('📅 Created 2 calendar events');
 
+  // ══ Activities ══
+  await activities.insertMany([
+    { userId, type: 'client_added', title: 'Client Acme Ltd', subtitle: 'added', iconType: 'client', timestamp: pastMonth(1, 1) },
+    { userId, type: 'project_created', title: 'Project "Website Redesign"', subtitle: 'created for Acme Ltd', iconType: 'project', timestamp: pastMonth(1, 5) },
+    { userId, type: 'proposal_accepted', title: `Proposal PROP-${year}-001`, subtitle: 'accepted by Acme Ltd', iconType: 'proposal', timestamp: pastMonth(1, 6) },
+    { userId, type: 'invoice_paid', title: `Invoice INV-${year}-001`, subtitle: 'Paid by Acme Ltd', iconType: 'check', timestamp: pastMonth(1, 22) },
+    { userId, type: 'client_added', title: 'Client Kigali Tech', subtitle: 'added', iconType: 'client', timestamp: pastMonth(0, 6) },
+    { userId, type: 'project_created', title: 'Project "Mobile App"', subtitle: 'created for Kigali Tech', iconType: 'project', timestamp: pastMonth(0, 8) },
+  ]);
+  console.log('⚡ Created 6 activities');
+
+  // ══ Sanity-check relationships ══
+  const counts = {
+    clients: await clients.countDocuments({ userId }),
+    projects: await projects.countDocuments({ userId }),
+    proposals: await proposals.countDocuments({ userId }),
+    invoices: await invoices.countDocuments({ userId }),
+    isolatedClient: await clients.countDocuments({ userId: otherUserId }),
+    isolatedProjects: await projects.countDocuments({ userId: otherUserId }),
+  };
+  console.log('\n🔍 Relationship verification:');
+  console.log('  demo   clients:', counts.clients, '| projects:', counts.projects, '| proposals:', counts.proposals, '| invoices:', counts.invoices);
+  console.log('  other  clients:', counts.isolatedClient, '| projects:', counts.isolatedProjects);
+
   await mongoose.disconnect();
   console.log('\n✅ Seed complete! Log in with: demo@soloflow.com / demo123\n');
 }
 
-seed().catch((err) => {
-  console.error('❌ Seed failed:', err);
-  process.exit(1);
-});
+/** Standalone CLI entry point: `npm run seed`. */
+async function seed() {
+  console.log('🌱 Connecting to MongoDB...');
+  await mongoose.connect(MONGODB_URI);
+  console.log('✅ Connected:', MONGODB_URI);
+
+  try {
+    await runSeed(mongoose.connection.db!);
+  } finally {
+    await mongoose.disconnect();
+  }
+}
+
+// Only run the CLI seeding when executed directly (not when imported).
+if (require.main === module) {
+  seed().catch((err) => {
+    console.error('❌ Seed failed:', err);
+    process.exit(1);
+  });
+}

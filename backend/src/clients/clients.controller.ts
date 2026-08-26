@@ -22,12 +22,21 @@ import { Model, Types } from 'mongoose';
 import { Project } from '../projects/project.schema';
 import { Proposal } from '../proposals/proposal.schema';
 import { Invoice } from '../invoices/invoice.schema';
+import { ProjectsService } from '../projects/projects.service';
+import { ProposalsService } from '../proposals/proposals.service';
+import { InvoicesService } from '../invoices/invoices.service';
+import { CreateProjectDto } from '../projects/dto/create-project.dto';
+import { CreateProposalDto } from '../proposals/dto/create-proposal.dto';
+import { CreateInvoiceDto } from '../invoices/dto/create-invoice.dto';
 
 @Controller('clients')
 @UseGuards(JwtAuthGuard)
 export class ClientsController {
   constructor(
     private readonly clientsService: ClientsService,
+    private readonly projectsService: ProjectsService,
+    private readonly proposalsService: ProposalsService,
+    private readonly invoicesService: InvoicesService,
     @InjectModel(Project.name) private readonly projectModel: Model<any>,
     @InjectModel(Proposal.name) private readonly proposalModel: Model<any>,
     @InjectModel(Invoice.name) private readonly invoiceModel: Model<any>,
@@ -248,6 +257,49 @@ export class ClientsController {
     }));
 
     return { invoices: formatted, total: formatted.length };
+  }
+
+  /**
+   * POST /api/clients/:id/projects
+   * Create a project inside an owned client. The clientId comes from the
+   * route and is re-validated against the authenticated user.
+   */
+  @Post(':id/projects')
+  @HttpCode(HttpStatus.CREATED)
+  createProject(
+    @CurrentUser() user: UserDocument,
+    @Param('id') id: string,
+    @Body() dto: CreateProjectDto,
+  ) {
+    return this.projectsService.create(user, id, dto);
+  }
+
+  /**
+   * POST /api/clients/:id/proposals
+   * Create a proposal inside an owned client.
+   */
+  @Post(':id/proposals')
+  @HttpCode(HttpStatus.CREATED)
+  createProposal(
+    @CurrentUser() user: UserDocument,
+    @Param('id') id: string,
+    @Body() dto: CreateProposalDto,
+  ) {
+    return this.proposalsService.create(String(user._id), id, dto);
+  }
+
+  /**
+   * POST /api/clients/:id/invoices
+   * Create an invoice inside an owned client.
+   */
+  @Post(':id/invoices')
+  @HttpCode(HttpStatus.CREATED)
+  createInvoice(
+    @CurrentUser() user: UserDocument,
+    @Param('id') id: string,
+    @Body() dto: CreateInvoiceDto,
+  ) {
+    return this.invoicesService.create(user, id, dto);
   }
 
   /** POST /api/clients */

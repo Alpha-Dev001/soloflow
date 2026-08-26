@@ -175,12 +175,12 @@ export class InvoicesService {
       .exec();
   }
 
-  async create(user: UserDocument, dto: CreateInvoiceDto): Promise<any> {
+  async create(user: UserDocument, clientId: string, dto: CreateInvoiceDto): Promise<any> {
     const userId = String(user._id);
     const current = await this.countInvoicesThisMonth(userId);
     this.entitlements.assertWithinLimit(user, 'invoicesPerMonth', current);
 
-    const client = await this.validateClient(userId, dto.clientId);
+    const client = await this.validateClient(userId, clientId);
     const invoiceNumber = await this.generateInvoiceNumber(userId);
 
     // Calculate totals from items
@@ -216,15 +216,8 @@ export class InvoicesService {
 
   async update(userId: string, invoiceId: string, dto: UpdateInvoiceDto): Promise<any> {
     const invoice = await this.findOne(userId, invoiceId);
-    let targetClientId = String(invoice.clientId);
-
-    if (dto.clientId && dto.clientId !== targetClientId) {
-      const newClient = await this.validateClient(userId, dto.clientId);
-      invoice.clientId = new Types.ObjectId(newClient._id) as any;
-      targetClientId = String(newClient._id);
-    }
-
-    const clientName = await this.getClientName(userId, targetClientId);
+    // An invoice is permanently bound to its client — it cannot be reassigned.
+    const clientName = await this.getClientName(userId, String(invoice.clientId));
 
     if (dto.items) {
       const items = dto.items.map((item) => ({
