@@ -1,7 +1,0 @@
-{
-  "buildCommand": "cd frontend && npm run build",
-  "outputDirectory": "frontend/dist",
-  "framework": "vite",
-  "installCommand": "npm install",
-  "ignoreCommand": "cd backend && echo skip"
-}
