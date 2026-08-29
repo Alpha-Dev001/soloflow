@@ -7,14 +7,11 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ClientsModule } from './clients/clients.module';
 import { ProjectsModule } from './projects/projects.module';
-import { ProposalsModule } from './proposals/proposals.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ActivitiesModule } from './activities/activities.module';
-import { AiModule } from './ai/ai.module';
-import { AiUsageModule } from './ai-usage/ai-usage.module';
 import { EntitlementsModule } from './entitlements/entitlements.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -62,14 +59,11 @@ import { DatabaseModule } from './database/database.module';
     UsersModule,
     ClientsModule,
     ProjectsModule,
-    ProposalsModule,
     InvoicesModule,
     CalendarModule,
     AnalyticsModule,
     DashboardModule,
     ActivitiesModule,
-    AiModule,
-    AiUsageModule,
     DatabaseModule,
   ],
 })

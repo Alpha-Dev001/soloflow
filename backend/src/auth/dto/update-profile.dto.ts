@@ -5,7 +5,7 @@ import {
   IsObject,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 class BankDetailsDto {
   @IsOptional()
@@ -25,12 +25,6 @@ class BankDetailsDto {
   accountNumber?: string;
 }
 
-class AiSettingsDto {
-  @IsOptional()
-  @IsString()
-  defaultTone?: string;
-}
-
 /**
  * Profile updates — deliberately excludes plan, role, subscriptionStatus,
  * and accountStatus. Those are server-controlled only.
@@ -41,6 +35,7 @@ export class UpdateProfileDto {
   name?: string;
 
   @IsOptional()
+  @Transform(({ value }) => (value === '' || value === null) ? undefined : value)
   @IsEmail()
   email?: string;
 
@@ -61,10 +56,4 @@ export class UpdateProfileDto {
   @ValidateNested()
   @Type(() => BankDetailsDto)
   bankDetails?: BankDetailsDto;
-
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => AiSettingsDto)
-  aiSettings?: AiSettingsDto;
 }

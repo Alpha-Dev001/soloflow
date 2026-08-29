@@ -205,7 +205,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ user }) => {
                 <th className="py-2 pr-3 font-medium">Role</th>
                 <th className="py-2 pr-3 font-medium">Plan</th>
                 <th className="py-2 pr-3 font-medium">Sub status</th>
-                <th className="py-2 pr-3 font-medium">AI today</th>
                 <th className="py-2 pr-3 font-medium">Joined</th>
                 <th className="py-2 font-medium">Actions</th>
               </tr>
@@ -237,7 +236,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ user }) => {
                   <td className="py-3 pr-3 text-[#4A4037] capitalize">
                     {u.subscriptionStatus || '—'}
                   </td>
-                  <td className="py-3 pr-3 text-[#4A4037]">{u.aiUsageToday ?? 0}</td>
                   <td className="py-3 pr-3 text-xs text-[#8C8278]">
                     {u.createdAt
                       ? new Date(u.createdAt).toLocaleDateString()

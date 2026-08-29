@@ -5,7 +5,7 @@ import {
   IsIn,
   IsArray,
   ValidateNested,
-  IsPositive,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -14,10 +14,11 @@ export class InvoiceItemDto {
   description: string;
 
   @IsNumber()
-  @IsPositive()
+  @Min(1)
   quantity: number;
 
   @IsNumber()
+  @Min(0)
   unitPrice: number;
 
   @IsOptional()
@@ -26,8 +27,9 @@ export class InvoiceItemDto {
 }
 
 export class CreateInvoiceDto {
+  @IsOptional()
   @IsString()
-  clientId: string;
+  clientId?: string;
 
   @IsOptional()
   @IsString()

@@ -114,7 +114,6 @@ export class AuthService {
       company: dto.company,
       currency: dto.currency,
       bankDetails: dto.bankDetails,
-      aiSettings: dto.aiSettings,
     };
     const updated = await this.usersService.update(userId, safe as any);
     return { user: this.enrichUser(updated) };

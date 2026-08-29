@@ -12,7 +12,7 @@ import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { Client, ClientSchema } from '../clients/client.schema';
 import { Project, ProjectSchema } from '../projects/project.schema';
 import { Invoice, InvoiceSchema } from '../invoices/invoice.schema';
-import { AiUsageModule } from '../ai-usage/ai-usage.module';
+
 
 @Module({
   imports: [
@@ -25,7 +25,6 @@ import { AiUsageModule } from '../ai-usage/ai-usage.module';
     UsersModule,
     PaymentsModule,
     EntitlementsModule,
-    AiUsageModule,
   ],
   controllers: [SubscriptionsController],
   providers: [SubscriptionsService],

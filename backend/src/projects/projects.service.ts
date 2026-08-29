@@ -193,12 +193,12 @@ export class ProjectsService {
       deadline: parseDate(dto.deadline),
       startDate: dto.startDate ? parseDate(dto.startDate) : undefined,
       tags: dto.tags || [],
-      proposalId: dto.proposalId && Types.ObjectId.isValid(dto.proposalId) ? new Types.ObjectId(dto.proposalId) : undefined,
     });
     const saved = await project.save();
 
     await this.activitiesService.log({
       userId,
+      clientId: client._id ? String(client._id) : clientId,
       type: 'project_created',
       title: `Project "${saved.title}"`,
       subtitle: `created for ${client.name}`,
@@ -235,6 +235,7 @@ export class ProjectsService {
 
     await this.activitiesService.log({
       userId,
+      clientId: String(project.clientId),
       type: 'project_status',
       title: `Project "${saved.title}"`,
       subtitle: `marked as ${status}`,

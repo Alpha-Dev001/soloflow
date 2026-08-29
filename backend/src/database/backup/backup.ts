@@ -25,7 +25,6 @@ const COLLECTIONS = [
   'users',
   'clients',
   'projects',
-  'proposals',
   'invoices',
   'activities',
   'calendarevents',

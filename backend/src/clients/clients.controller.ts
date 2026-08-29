@@ -20,13 +20,11 @@ import { UpdateClientDto } from './dto/update-client.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Project } from '../projects/project.schema';
-import { Proposal } from '../proposals/proposal.schema';
 import { Invoice } from '../invoices/invoice.schema';
 import { ProjectsService } from '../projects/projects.service';
-import { ProposalsService } from '../proposals/proposals.service';
 import { InvoicesService } from '../invoices/invoices.service';
+import { ActivitiesService } from '../activities/activities.service';
 import { CreateProjectDto } from '../projects/dto/create-project.dto';
-import { CreateProposalDto } from '../proposals/dto/create-proposal.dto';
 import { CreateInvoiceDto } from '../invoices/dto/create-invoice.dto';
 
 @Controller('clients')
@@ -35,10 +33,9 @@ export class ClientsController {
   constructor(
     private readonly clientsService: ClientsService,
     private readonly projectsService: ProjectsService,
-    private readonly proposalsService: ProposalsService,
     private readonly invoicesService: InvoicesService,
+    private readonly activitiesService: ActivitiesService,
     @InjectModel(Project.name) private readonly projectModel: Model<any>,
-    @InjectModel(Proposal.name) private readonly proposalModel: Model<any>,
     @InjectModel(Invoice.name) private readonly invoiceModel: Model<any>,
   ) { }
 
@@ -51,7 +48,7 @@ export class ClientsController {
     return this.clientsService.findAll(String(user._id), search);
   }
 
-  /** GET /api/clients/:id — returns client + related projects/proposals/invoices */
+  /** GET /api/clients/:id — returns client + related projects/invoices */
   @Get(':id')
   async findOne(
     @CurrentUser() user: UserDocument,
@@ -61,13 +58,8 @@ export class ClientsController {
     const client = await this.clientsService.findOne(userId, id);
     const clientObjId = new Types.ObjectId(id);
 
-    const [projects, proposals, invoices] = await Promise.all([
+    const [projects, invoices] = await Promise.all([
       this.projectModel
-        .find({ userId: new Types.ObjectId(userId), clientId: clientObjId })
-        .sort({ createdAt: -1 })
-        .lean()
-        .exec(),
-      this.proposalModel
         .find({ userId: new Types.ObjectId(userId), clientId: clientObjId })
         .sort({ createdAt: -1 })
         .lean()
@@ -96,15 +88,6 @@ export class ClientsController {
       _id: undefined,
     }));
 
-    const normalizedProposals = proposals.map((p: any) => ({
-      ...p,
-      id: String(p._id),
-      clientId: String(p.clientId),
-      projectId: p.projectId ? String(p.projectId) : undefined,
-      clientName: client.name,
-      _id: undefined,
-    }));
-
     const normalizedInvoices = invoices.map((inv: any) => ({
       ...inv,
       id: String(inv._id),
@@ -126,11 +109,10 @@ export class ClientsController {
         })
         : '',
       paidAt: inv.paidAt ? new Date(inv.paidAt).toISOString() : undefined,
-      items: (inv.items || []).map((item: any, idx: number) => ({
-        id: item._id ? String(item._id) : (item.id || String(idx)),
-        ...item,
-        _id: undefined,
-      })),
+      items: (inv.items || []).map((item: any, idx: number) => {
+        const { _id, id: _rawId, ...rest } = item;
+        return { id: _id ? String(_id) : (_rawId || String(idx)), ...rest };
+      }),
       _id: undefined,
     }));
 
@@ -140,17 +122,21 @@ export class ClientsController {
       .reduce((sum: number, inv: any) => sum + (inv.total || 0), 0);
     const projectsCount = projects.length;
 
+    // Client-scoped activities
+    const activities = await this.activitiesService.findByClient(userId, id, 20);
+
     return {
       client: {
         ...client.toJSON(),
         id: String(client._id),
         totalSpent,
         projectsCount,
+        invoiceCount: invoices.length,
         _id: undefined,
       },
       projects: normalizedProjects,
-      proposals: normalizedProposals,
       invoices: normalizedInvoices,
+      activities: activities.map(a => this.activitiesService.toActivityItem(a)),
     };
   }
 
@@ -185,32 +171,6 @@ export class ClientsController {
     }));
 
     return { projects: formatted, total: formatted.length };
-  }
-
-  /** GET /api/clients/:id/proposals */
-  @Get(':id/proposals')
-  async findProposals(
-    @CurrentUser() user: UserDocument,
-    @Param('id') id: string,
-  ) {
-    const userId = String(user._id);
-    const client = await this.clientsService.findOne(userId, id);
-    const proposals = await this.proposalModel
-      .find({ userId: new Types.ObjectId(userId), clientId: new Types.ObjectId(id) })
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
-
-    const formatted = proposals.map((p: any) => ({
-      ...p,
-      id: String(p._id),
-      clientId: String(p.clientId),
-      projectId: p.projectId ? String(p.projectId) : undefined,
-      clientName: client.name,
-      _id: undefined,
-    }));
-
-    return { proposals: formatted, total: formatted.length };
   }
 
   /** GET /api/clients/:id/invoices */
@@ -248,11 +208,10 @@ export class ClientsController {
         })
         : '',
       paidAt: inv.paidAt ? new Date(inv.paidAt).toISOString() : undefined,
-      items: (inv.items || []).map((item: any, idx: number) => ({
-        id: item._id ? String(item._id) : (item.id || String(idx)),
-        ...item,
-        _id: undefined,
-      })),
+      items: (inv.items || []).map((item: any, idx: number) => {
+        const { _id, id: _rawId, ...rest } = item;
+        return { id: _id ? String(_id) : (_rawId || String(idx)), ...rest };
+      }),
       _id: undefined,
     }));
 
@@ -272,20 +231,6 @@ export class ClientsController {
     @Body() dto: CreateProjectDto,
   ) {
     return this.projectsService.create(user, id, dto);
-  }
-
-  /**
-   * POST /api/clients/:id/proposals
-   * Create a proposal inside an owned client.
-   */
-  @Post(':id/proposals')
-  @HttpCode(HttpStatus.CREATED)
-  createProposal(
-    @CurrentUser() user: UserDocument,
-    @Param('id') id: string,
-    @Body() dto: CreateProposalDto,
-  ) {
-    return this.proposalsService.create(String(user._id), id, dto);
   }
 
   /**

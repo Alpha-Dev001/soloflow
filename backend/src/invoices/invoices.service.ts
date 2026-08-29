@@ -83,11 +83,13 @@ export class InvoicesService {
       dueDate: obj.dueDate ? formatDate(new Date(obj.dueDate)) : '',
       paidAt: obj.paidAt ? new Date(obj.paidAt).toISOString() : undefined,
       // Ensure items have an id field
-      items: (obj.items || []).map((item: any, idx: number) => ({
-        id: item._id ? String(item._id) : (item.id || String(idx)),
-        ...item,
-        _id: undefined,
-      })),
+      items: (obj.items || []).map((item: any, idx: number) => {
+        const { _id, id: _rawId, ...rest } = item;
+        return {
+          id: _id ? String(_id) : (_rawId || String(idx)),
+          ...rest,
+        };
+      }),
     };
   }
 
@@ -254,6 +256,7 @@ export class InvoicesService {
 
       await this.activitiesService.log({
         userId,
+        clientId: String(invoice.clientId),
         type: 'invoice_paid',
         title: `Invoice ${invoice.invoiceNumber}`,
         subtitle: `Paid by ${clientName}`,

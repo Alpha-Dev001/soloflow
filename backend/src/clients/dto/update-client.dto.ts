@@ -1,4 +1,5 @@
 import { IsString, IsOptional, IsEmail, IsIn } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class UpdateClientDto {
     @IsOptional()
@@ -10,6 +11,7 @@ export class UpdateClientDto {
     company?: string;
 
     @IsOptional()
+    @Transform(({ value }) => (value === '' || value === null) ? undefined : value)
     @IsEmail()
     email?: string;
 

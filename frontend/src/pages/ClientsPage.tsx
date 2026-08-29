@@ -392,223 +392,203 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({
       ) : (
         /* Clients Table Card */
         <Card padding="none" style={{ borderColor: T.border }}>
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b text-[11px] font-medium select-none" style={{ backgroundColor: T.surfaceWarm, borderColor: T.border, color: T.muted }}>
-                <tr>
-                  <th className="py-2.5 px-4 font-medium">Client</th>
-                  <th className="py-2.5 px-3 font-medium">Company</th>
-                  <th className="py-2.5 px-3 font-medium">Email</th>
-                  <th className="py-2.5 px-3 font-medium">Total Spent</th>
-                  <th className="py-2.5 px-3 font-medium text-center">Projects</th>
-                  <th className="py-2.5 px-3 font-medium">Status</th>
-                  <th className="py-2.5 px-4 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              {/* Hairline row separators only — no thick dark lines */}
-              <tbody className="divide-y divide-[#F4F0EA]">
-                {filteredClients.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-10 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <p className="text-xs" style={{ color: T.muted }}>
-                          {clients.length === 0 ? 'No clients yet. Start by adding your first client.' : 'No clients found matching your search.'}
-                        </p>
-                        {clients.length === 0 && (
-                          <Button onClick={openAddForm} variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
-                            Create Client
-                          </Button>
+          {/* Desktop Card Grid View */}
+          <div className="hidden md:block">
+            {filteredClients.length === 0 ? (
+              clients.length === 0 ? (
+                /* ── Empty state: card-style placeholder matching real client cards ── */
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                  <button
+                    onClick={openAddForm}
+                    className="group p-5 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 hover:border-solid hover:shadow-md flex flex-col items-center justify-center text-center min-h-[188px]"
+                    style={{ borderColor: T.borderStrong, backgroundColor: T.surfaceWarm }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = T.accent; e.currentTarget.style.boxShadow = '0 4px 12px rgba(147,122,98,0.10)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = T.borderStrong; e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-all group-hover:scale-105" style={{ backgroundColor: T.border, color: T.accent }}>
+                      <Plus className="w-5 h-5" />
+                    </div>
+                    <p className="text-[13px] font-semibold mb-0.5" style={{ color: T.ink }}>New client</p>
+                    <p className="text-[11px]" style={{ color: T.muted }}>Add a client to your workspace</p>
+                  </button>
+                </div>
+              ) : (
+                <div className="py-10 px-4 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <p className="text-xs" style={{ color: T.muted }}>
+                      No clients found matching your search.
+                    </p>
+                  </div>
+                </div>
+              )
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                {/* ── Real client cards ── */}
+                {paginatedClients.map(client => (
+                  <div
+                    key={client.id}
+                    onClick={() => onSelectClient(client.id)}
+                    className="group p-5 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-md"
+                    style={{ backgroundColor: T.surface, borderColor: T.border }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = T.accent; e.currentTarget.style.boxShadow = '0 4px 12px rgba(147,122,98,0.12)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar name={client.name} size="md" />
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-sm truncate group-hover:text-[#937A62] transition-colors" style={{ color: T.ink }}>
+                            {client.name}
+                          </h3>
+                          <p className="text-[11px] truncate" style={{ color: T.muted }}>
+                            {client.company || 'Private Client'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="relative" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => setActiveMenuId(activeMenuId === client.id ? null : client.id)}
+                          className="p-1 rounded-md transition-colors cursor-pointer hover:bg-black/[0.04]"
+                          style={{ color: T.muted }}
+                        >
+                          <MoreVertical className="w-3.5 h-3.5" />
+                        </button>
+                        {activeMenuId === client.id && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setActiveMenuId(null)} />
+                            <div
+                              className="absolute right-0 top-full mt-1 w-32 border rounded-xl shadow-lg p-1 z-50"
+                              style={{ backgroundColor: T.surface, borderColor: T.border }}
+                            >
+                              <button onClick={() => { setActiveMenuId(null); openEdit(client); }} className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg cursor-pointer hover:bg-[#F1EDE7]" style={{ color: T.body }}>
+                                <Edit2 className="w-3.5 h-3.5" style={{ color: T.accent }} /><span>Edit</span>
+                              </button>
+                              <button onClick={() => { setActiveMenuId(null); setPendingDelete(client); }} className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg cursor-pointer hover:bg-[#FFF5F5]" style={{ color: '#C86450' }}>
+                                <Trash2 className="w-3.5 h-3.5" /><span>Delete</span>
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedClients.map(client => (
-                    <tr
-                      key={client.id}
-                      onClick={() => onSelectClient(client.id)}
-                      className="hover:bg-[#F1EDE7]/60 transition-colors cursor-pointer group"
-                    >
-                      {/* Client Name + Avatar */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <Avatar name={client.name} size="sm" />
-                          <span className="font-medium group-hover:text-[#937A62] transition-colors" style={{ color: T.ink }}>
-                            {client.name}
-                          </span>
-                        </div>
-                      </td>
+                    </div>
 
-                      {/* Company */}
-                      <td className="py-3 px-3" style={{ color: T.body }}>
-                        {client.company || '—'}
-                      </td>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="text-center p-2 rounded-lg" style={{ backgroundColor: T.surfaceWarm }}>
+                        <div className="text-sm font-bold" style={{ color: T.ink }}>{client.projectsCount}</div>
+                        <div className="text-[9px] uppercase font-medium" style={{ color: T.muted }}>Projects</div>
+                      </div>
+                      <div className="text-center p-2 rounded-lg" style={{ backgroundColor: T.surfaceWarm }}>
+                        <div className="text-sm font-bold" style={{ color: T.ink }}>{client.invoiceCount ?? 0}</div>
+                        <div className="text-[9px] uppercase font-medium" style={{ color: T.muted }}>Invoices</div>
+                      </div>
+                    </div>
 
-                      {/* Email */}
-                      <td className="py-3 px-3" style={{ color: T.muted }}>
-                        {client.email}
-                      </td>
-
-                      {/* Total Spent */}
-                      <td className="py-3 px-3 font-medium" style={{ color: T.ink }}>
-                        ${client.totalSpent.toLocaleString()}
-                      </td>
-
-                      {/* Projects count */}
-                      <td className="py-3 px-3 text-center font-medium" style={{ color: T.body }}>
-                        {client.projectsCount}
-                      </td>
-
-                      {/* Status Badge */}
-                      <td className="py-3 px-3">
-                        <Badge size="sm" variant={client.status.toLowerCase() as any}>
-                          {client.status}
-                        </Badge>
-                      </td>
-
-                      {/* Action Dropdown */}
-                      <td
-                        className="py-3 px-4 text-right"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <div className="relative inline-block">
-                          <button
-                            onClick={() => setActiveMenuId(activeMenuId === client.id ? null : client.id)}
-                            className="p-1 rounded-md transition-colors cursor-pointer hover:bg-black/[0.04]"
-                            style={{ color: T.muted }}
-                            aria-label="Client actions"
-                          >
-                            <MoreVertical className="w-3.5 h-3.5" />
-                          </button>
-
-                          {activeMenuId === client.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-40"
-                                onClick={() => setActiveMenuId(null)}
-                              />
-                              <div
-                                className="fixed right-4 w-32 border rounded-xl shadow-lg p-1 z-50 animate-in fade-in zoom-in-95 duration-100"
-                                style={{ backgroundColor: T.surface, borderColor: T.border, top: 'auto', bottom: '80px' }}
-                              >
-                                <button
-                                  onClick={() => {
-                                    setActiveMenuId(null);
-                                    onSelectClient(client.id);
-                                  }}
-                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left cursor-pointer font-medium transition-colors duration-150 hover:bg-[#F1EDE7]"
-                                  style={{ color: T.body }}
-                                >
-                                  <Eye className="w-3.5 h-3.5" style={{ color: T.accent }} />
-                                  <span>Profile</span>
-                                </button>
-                                <button
-                                  onClick={() => openEdit(client)}
-                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left cursor-pointer font-medium transition-colors duration-150 hover:bg-[#F1EDE7]"
-                                  style={{ color: T.body }}
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" style={{ color: T.accent }} />
-                                  <span>Edit</span>
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    setActiveMenuId(null);
-                                    setPendingDelete(client);
-                                  }}
-                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-lg text-left cursor-pointer font-medium transition-colors duration-150 hover:bg-[#FFF5F5]"
-                                  style={{ color: '#C86450' }}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  <span>Delete</span>
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs" style={{ color: T.body }}>
+                        <span className="font-medium" style={{ color: T.ink }}>${client.totalSpent.toLocaleString()}</span>
+                        <span className="text-[11px] ml-1">earned</span>
+                      </div>
+                      <Badge size="sm" variant={client.status.toLowerCase() as any}>
+                        {client.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Mobile & Tablet Stacked Card View */}
           <div className="md:hidden divide-y divide-[#F4F0EA]">
             {filteredClients.length === 0 ? (
-              <div className="py-8 px-4 text-center">
-                <div className="flex flex-col items-center gap-3">
-                  <p className="text-xs" style={{ color: T.muted }}>
-                    {clients.length === 0 ? 'No clients yet. Start by adding your first client.' : 'No clients found matching your search.'}
-                  </p>
-                  {clients.length === 0 && (
-                    <Button onClick={openAddForm} variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
-                      Create Client
-                    </Button>
-                  )}
+              clients.length === 0 ? (
+                /* ── Mobile empty state: matching card-style placeholder ── */
+                <div className="py-4 px-4">
+                  <button
+                    onClick={openAddForm}
+                    className="w-full p-4 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 hover:border-solid hover:shadow-md flex items-center gap-3"
+                    style={{ borderColor: T.borderStrong, backgroundColor: T.surfaceWarm }}
+                  >
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: T.border, color: T.accent }}>
+                      <Plus className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-semibold" style={{ color: T.ink }}>New client</p>
+                      <p className="text-[11px]" style={{ color: T.muted }}>Add a client to your workspace</p>
+                    </div>
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <div className="py-8 px-4 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <p className="text-xs" style={{ color: T.muted }}>
+                      No clients found matching your search.
+                    </p>
+                  </div>
+                </div>
+              )
             ) : (
-              paginatedClients.map(client => (
-                <div
-                  key={client.id}
-                  onClick={() => onSelectClient(client.id)}
-                  className="p-3.5 hover:bg-[#F1EDE7]/60 transition-colors cursor-pointer space-y-2.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Avatar name={client.name} size="sm" />
-                      <div className="min-w-0">
-                        <div className="font-medium text-xs truncate" style={{ color: T.ink }}>
-                          {client.name}
-                        </div>
-                        <div className="text-[11px] truncate flex items-center gap-1" style={{ color: T.muted }}>
-                          <Building className="w-3 h-3 shrink-0" />
-                          <span>{client.company || 'Private Client'}</span>
+              <>
+                {paginatedClients.map(client => (
+                  <div
+                    key={client.id}
+                    onClick={() => onSelectClient(client.id)}
+                    className="p-3.5 hover:bg-[#F1EDE7]/60 transition-colors cursor-pointer space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Avatar name={client.name} size="sm" />
+                        <div className="min-w-0">
+                          <div className="font-medium text-xs truncate" style={{ color: T.ink }}>
+                            {client.name}
+                          </div>
+                          <div className="text-[11px] truncate flex items-center gap-1" style={{ color: T.muted }}>
+                            <Building className="w-3 h-3 shrink-0" />
+                            <span>{client.company || 'Private Client'}</span>
+                          </div>
                         </div>
                       </div>
+                      <Badge size="sm" variant={client.status.toLowerCase() as any}>
+                        {client.status}
+                      </Badge>
                     </div>
-                    <Badge size="sm" variant={client.status.toLowerCase() as any}>
-                      {client.status}
-                    </Badge>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs p-2 rounded-lg border" style={{ backgroundColor: T.surfaceWarm, borderColor: T.border }}>
-                    <div>
-                      <span className="block text-[9px] uppercase font-medium" style={{ color: T.muted }}>Total Spent</span>
-                      <span className="font-semibold text-xs" style={{ color: T.ink }}>${client.totalSpent.toLocaleString()}</span>
+                    <div className="grid grid-cols-2 gap-2 text-xs p-2 rounded-lg border" style={{ backgroundColor: T.surfaceWarm, borderColor: T.border }}>
+                      <div>
+                        <span className="block text-[9px] uppercase font-medium" style={{ color: T.muted }}>Total Spent</span>
+                        <span className="font-semibold text-xs" style={{ color: T.ink }}>${client.totalSpent.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[9px] uppercase font-medium" style={{ color: T.muted }}>Projects</span>
+                        <span className="font-medium text-xs" style={{ color: T.ink }}>{client.projectsCount}</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="block text-[9px] uppercase font-medium" style={{ color: T.muted }}>Projects</span>
-                      <span className="font-medium text-xs" style={{ color: T.ink }}>{client.projectsCount}</span>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center justify-between pt-0.5 text-xs">
-                    <div className="truncate flex items-center gap-1 text-[11px]" style={{ color: T.muted }}>
-                      <Mail className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{client.email}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                      <Button
-                        variant="secondary"
-                        size="xs"
-                        onClick={() => openEdit(client)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="xs"
-                        onClick={() => onSelectClient(client.id)}
-                      >
-                        View
-                      </Button>
+                    <div className="flex items-center justify-between pt-0.5 text-xs">
+                      <div className="truncate flex items-center gap-1 text-[11px]" style={{ color: T.muted }}>
+                        <Mail className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{client.email}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                        <Button
+                          variant="secondary"
+                          size="xs"
+                          onClick={() => openEdit(client)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="xs"
+                          onClick={() => onSelectClient(client.id)}
+                        >
+                          View
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </>
             )}
           </div>
 

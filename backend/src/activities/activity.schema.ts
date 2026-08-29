@@ -8,6 +8,9 @@ export class Activity {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Client', index: true })
+  clientId?: Types.ObjectId;
+
   @Prop({ required: true })
   type: string;
 

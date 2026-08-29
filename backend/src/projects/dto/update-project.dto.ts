@@ -33,9 +33,6 @@ export class UpdateProjectDto {
   @IsArray()
   tags?: string[];
 
-  @IsOptional()
-  @IsString()
-  proposalId?: string;
 }
 
 export class UpdateProjectStatusDto {

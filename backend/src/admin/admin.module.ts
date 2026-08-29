@@ -9,7 +9,6 @@ import {
   Subscription,
   SubscriptionSchema,
 } from '../subscriptions/subscription.schema';
-import { AiUsage, AiUsageSchema } from '../ai-usage/ai-usage.schema';
 
 @Module({
   imports: [
@@ -18,7 +17,6 @@ import { AiUsage, AiUsageSchema } from '../ai-usage/ai-usage.schema';
     EntitlementsModule,
     MongooseModule.forFeature([
       { name: Subscription.name, schema: SubscriptionSchema },
-      { name: AiUsage.name, schema: AiUsageSchema },
     ]),
   ],
   controllers: [AdminController],

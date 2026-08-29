@@ -4,7 +4,6 @@ import { Model, Types } from 'mongoose';
 import { Invoice } from '../invoices/invoice.schema';
 import { Project } from '../projects/project.schema';
 import { Client } from '../clients/client.schema';
-import { Proposal } from '../proposals/proposal.schema';
 import { ActivitiesService } from '../activities/activities.service';
 import { CalendarEvent } from '../calendar/calendar-event.schema';
 
@@ -16,7 +15,6 @@ export class DashboardService {
     @InjectModel(Invoice.name) private readonly invoiceModel: Model<any>,
     @InjectModel(Project.name) private readonly projectModel: Model<any>,
     @InjectModel(Client.name) private readonly clientModel: Model<any>,
-    @InjectModel(Proposal.name) private readonly proposalModel: Model<any>,
     @InjectModel(CalendarEvent.name) private readonly calendarModel: Model<any>,
     private readonly activitiesService: ActivitiesService,
   ) { }

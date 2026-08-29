@@ -10,8 +10,7 @@ interface ShellProps {
   onNavigate: (page: NavPage, param?: string) => void;
   user: User | null;
   onLogout?: () => void;
-  onUpgrade?: () => void;
-  onOpenQuickCreate?: (type: 'client' | 'project' | 'proposal' | 'invoice') => void;
+  onOpenQuickCreate?: (type: 'client' | 'project' | 'invoice') => void;
   onResetSeed?: () => void;
   searchData?: SearchData;
   activities?: ActivityItem[];
@@ -23,7 +22,6 @@ export const Shell: React.FC<ShellProps> = ({
   onNavigate,
   user,
   onLogout,
-  onUpgrade,
   onOpenQuickCreate,
   onResetSeed,
   searchData,
@@ -40,7 +38,6 @@ export const Shell: React.FC<ShellProps> = ({
         onNavigate={onNavigate}
         user={user}
         onLogout={onLogout}
-        onUpgrade={onUpgrade}
         isMobileOpen={isMobileOpen}
         onCloseMobile={() => setIsMobileOpen(false)}
         isCollapsed={isCollapsed}

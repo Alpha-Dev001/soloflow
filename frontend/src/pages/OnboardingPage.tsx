@@ -40,7 +40,7 @@ const professions = [
 const goalOptions = [
   { id: 'clients', label: 'Manage clients', desc: 'One calm place for every account' },
   { id: 'invoices', label: 'Send invoices', desc: 'Get paid faster with less admin' },
-  { id: 'proposals', label: 'Win work with AI proposals', desc: 'Polished scopes in minutes' }
+  { id: 'calendar', label: 'Track deadlines', desc: 'Never miss a milestone' }
 ];
 
 const inputClass =

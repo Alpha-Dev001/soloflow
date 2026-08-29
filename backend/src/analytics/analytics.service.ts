@@ -4,7 +4,6 @@ import { Model, Types } from 'mongoose';
 import { Invoice } from '../invoices/invoice.schema';
 import { Project } from '../projects/project.schema';
 import { Client } from '../clients/client.schema';
-import { Proposal } from '../proposals/proposal.schema';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -14,7 +13,6 @@ export class AnalyticsService {
     @InjectModel(Invoice.name) private readonly invoiceModel: Model<any>,
     @InjectModel(Project.name) private readonly projectModel: Model<any>,
     @InjectModel(Client.name) private readonly clientModel: Model<any>,
-    @InjectModel(Proposal.name) private readonly proposalModel: Model<any>,
   ) { }
 
   async getMetrics(userId: string) {
@@ -31,7 +29,6 @@ export class AnalyticsService {
     const [
       totalRevAgg,
       totalInvoicedAgg,
-      proposalStats,
       monthlyRevenueAgg,
       topClientsAgg,
       clientCount,
@@ -45,19 +42,6 @@ export class AnalyticsService {
       this.invoiceModel.aggregate([
         { $match: { userId: userObjId } },
         { $group: { _id: null, total: { $sum: '$total' } } },
-      ]),
-      // Proposal win rate
-      this.proposalModel.aggregate([
-        { $match: { userId: userObjId } },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            accepted: {
-              $sum: { $cond: [{ $eq: ['$status', 'Accepted'] }, 1, 0] },
-            },
-          },
-        },
       ]),
       // Monthly revenue (last 6 months, paid invoices)
       this.invoiceModel.aggregate([
@@ -106,17 +90,9 @@ export class AnalyticsService {
 
     const totalRevenue = totalRevAgg[0]?.total || 0;
     const totalInvoiced = totalInvoicedAgg[0]?.total || 0;
-    const proposalTotal = proposalStats[0]?.total || 0;
-    const proposalAccepted = proposalStats[0]?.accepted || 0;
-
     const collectionRate =
       totalInvoiced > 0
         ? Math.round((totalRevenue / totalInvoiced) * 100)
-        : 0;
-
-    const proposalWinRate =
-      proposalTotal > 0
-        ? Math.round((proposalAccepted / proposalTotal) * 100)
         : 0;
 
     const avgProjectValue =
@@ -141,7 +117,6 @@ export class AnalyticsService {
       analytics: {
         totalRevenue,
         avgProjectValue,
-        proposalWinRate,
         collectionRate,
         monthlyRevenue,
         topClientsRevenue,

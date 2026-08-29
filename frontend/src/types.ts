@@ -1,4 +1,4 @@
-export interface User {
+ export interface User {
   id: string;
   name: string;
   email: string;
@@ -22,66 +22,22 @@ export interface Entitlements {
   accountStatus: string;
   role: string;
   features: {
-    AI_ASSISTANT: boolean;
     ADVANCED_ANALYTICS: boolean;
     FULL_CALENDAR: boolean;
-    AI_PROPOSAL: boolean;
   };
   limits: {
     activeClients: number;
     activeProjects: number;
     invoicesPerMonth: number;
-    aiProposalsPerDay: number;
   };
   benefits: string[];
   isPro: boolean;
   canUpgrade: boolean;
 }
 
-export interface PlanUsageBucket {
-  used: number;
-  limit: number;
-  unlimited: boolean;
-}
-
-export interface SubscriptionInfo {
-  user: User;
-  subscription: {
-    id: string;
-    plan: string;
-    status: string;
-    startedAt?: string;
-    expiresAt?: string;
-    provider?: string;
-  } | null;
-  entitlements: Entitlements;
-  usage: {
-    activeClients: PlanUsageBucket;
-    activeProjects: PlanUsageBucket;
-    invoicesThisMonth: PlanUsageBucket;
-    aiProposalsToday: AiUsage;
-  };
-  plans: {
-    starter: PlanDefinition;
-    pro: PlanDefinition;
-  };
-}
-
-export interface PlanDefinition {
-  id: string;
-  label: string;
-  displayName: string;
-  priceMonthly: number;
-  currency: string;
-  limits: Entitlements['limits'];
-  features: Entitlements['features'];
-  benefits: string[];
-}
-
 export interface ApiErrorBody {
   message?: string;
   code?: string;
-  upgradeRequired?: boolean;
   feature?: string;
   limit?: number;
   used?: number;
@@ -99,6 +55,7 @@ export interface Client {
   status: 'Active' | 'Lead' | 'Inactive';
   totalSpent: number;
   projectsCount: number;
+  invoiceCount?: number;
   notes?: string;
   tier?: 'Enterprise' | 'Startup' | 'SMB';
   country?: string;
@@ -123,33 +80,7 @@ export interface Project {
   deadline: string;
   tags?: string[];
   tasks?: { id: string; title: string; completed: boolean }[];
-  proposalId?: string;
   invoiceIds?: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type ProposalStatus = 'Draft' | 'Sent' | 'Viewed' | 'Accepted' | 'Rejected' | 'Expired';
-
-export interface Proposal {
-  id: string;
-  proposalNumber: string; // e.g. PROP-2024-008
-  title: string;
-  clientId: string;
-  clientName: string;
-  projectId?: string;
-  projectName?: string;
-  amount: number;
-  status: ProposalStatus;
-  tone: string;
-  overview: string;
-  scopeOfWork: string[];
-  deliverables: string[];
-  timeline: string;
-  investment: string;
-  terms?: string;
-  contentHtml?: string;
-  contentMarkdown?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -188,12 +119,13 @@ export interface Invoice {
 
 export interface ActivityItem {
   id: string;
-  type: 'invoice_paid' | 'invoice_overdue' | 'proposal_generated' | 'proposal_accepted' | 'project_status' | 'client_added' | string;
+  type: 'invoice_paid' | 'invoice_overdue' | 'project_status' | 'client_added' | string;
   title: string;
   subtitle: string;
   timeAgo: string;
   timestamp: string;
-  iconType?: 'check' | 'proposal' | 'project' | 'invoice' | 'client' | string;
+  iconType?: 'check' | 'project' | 'invoice' | 'client' | string;
+  clientId?: string;
 }
 
 export interface UpcomingItem {
@@ -245,7 +177,6 @@ export interface DashboardMetrics {
 export interface AnalyticsData {
   totalRevenue: number;
   avgProjectValue: number;
-  proposalWinRate: number;
   collectionRate: number;
   monthlyRevenue: {
     month: string;
@@ -300,11 +231,4 @@ export interface CalendarEvent {
   completed?: boolean;
 }
 
-/** Daily AI usage / quota state returned by the backend. */
-export interface AiUsage {
-  plan: 'STARTER' | 'PRO';
-  limit: number;
-  used: number;
-  remaining: number;
-  resetAt?: string;
-}
+

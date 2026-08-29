@@ -148,6 +148,7 @@ export class ClientsService {
 
     await this.activitiesService.log({
       userId,
+      clientId: String(saved._id),
       type: 'client_added',
       title: `Client ${saved.name}`,
       subtitle: 'added',

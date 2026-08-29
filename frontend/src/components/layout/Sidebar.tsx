@@ -3,16 +3,13 @@ import type { ReactNode, FC, KeyboardEvent } from 'react';
 import {
   LayoutGrid,
   Users,
-  FolderKanban,
-  FileText,
-  Receipt,
   Calendar as CalendarIcon,
   BarChart3,
-  Sparkles,
   LogOut,
   Globe,
   Shield,
-  Crown
+  Crown,
+  Settings
 } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
 import { Logo } from '../ui/Logo';
@@ -27,16 +24,11 @@ export type NavPage =
   | 'clients'
   | 'client-detail'
   | 'projects'
-  | 'proposals'
-  | 'proposal-new'
-  | 'proposal-detail'
-  | 'proposal-editor'
   | 'invoices'
   | 'invoice-new'
   | 'invoice-detail'
   | 'calendar'
   | 'analytics'
-  | 'ai-assistant'
   | 'settings'
   | 'admin';
 
@@ -51,7 +43,6 @@ interface SidebarProps {
   onNavigate: (page: NavPage, param?: string) => void;
   user: User | null;
   onLogout?: () => void;
-  onUpgrade?: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
   isCollapsed?: boolean;
@@ -62,31 +53,24 @@ export const Sidebar: FC<SidebarProps> = ({
   onNavigate,
   user,
   onLogout,
-  onUpgrade,
   isMobileOpen,
   onCloseMobile,
   isCollapsed = false
 }) => {
-  // Single flat group — calm, minimal information architecture
+  // Reduced navigation — primary sidebar only shows top-level items
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid className="w-4 h-4" /> },
     { id: 'clients', label: 'Clients', icon: <Users className="w-4 h-4" /> },
-    { id: 'projects', label: 'Projects', icon: <FolderKanban className="w-4 h-4" /> },
-    { id: 'proposals', label: 'Proposals', icon: <FileText className="w-4 h-4" /> },
-    { id: 'invoices', label: 'Invoices', icon: <Receipt className="w-4 h-4" /> },
     { id: 'calendar', label: 'Calendar', icon: <CalendarIcon className="w-4 h-4" /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-4 h-4" /> },
-    { id: 'ai-assistant', label: 'AI Assistant', icon: <Sparkles className="w-4 h-4" /> }
+    { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
   ];
 
-  const isPro = user?.entitlements?.isPro || user?.plan === 'pro';
-  const canUpgrade = user?.entitlements?.canUpgrade ?? (!isPro && user?.role !== 'ADMIN');
   const isAdmin = user?.role === 'ADMIN';
   const isCurrent = (id: NavPage) => {
     if (currentPage === id) return true;
-    if (id === 'clients' && currentPage === 'client-detail') return true;
-    if (id === 'proposals' && (currentPage === 'proposal-new' || currentPage === 'proposal-detail' || currentPage === 'proposal-editor')) return true;
-    if (id === 'invoices' && (currentPage === 'invoice-new' || currentPage === 'invoice-detail')) return true;
+    // Keep Clients highlighted when in client workspace or sub-pages
+    if (id === 'clients' && (currentPage === 'client-detail' || currentPage === 'projects' || currentPage === 'invoices' || currentPage === 'invoice-detail')) return true;
     return false;
   };
 
@@ -138,19 +122,19 @@ export const Sidebar: FC<SidebarProps> = ({
           boxShadow: '10px 0 36px rgba(74, 59, 50, 0.22), 3px 0 10px rgba(74, 59, 50, 0.12)'
         }}
       >
-        {/* Soft ambient warmth in the lower half — keeps the dark surface from feeling flat without washing out the logo bar */}
+        {/* Soft ambient warmth in the lower half */}
         <div
           aria-hidden
           className="absolute -bottom-32 -left-20 w-[300px] h-[300px] rounded-full pointer-events-none"
           style={{ background: 'radial-gradient(circle, rgba(210, 186, 158, 0.14) 0%, transparent 68%)' }}
         />
-        {/* Subtle top highlight line for a crisp, crafted edge */}
+        {/* Subtle top highlight line */}
         <div
           aria-hidden
           className="absolute top-0 left-0 right-0 h-px pointer-events-none"
           style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 100%)' }}
         />
-        {/* Fine dotted texture so the dark surface reads as crafted paper, not a plain fill */}
+        {/* Fine dotted texture */}
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
@@ -253,7 +237,7 @@ export const Sidebar: FC<SidebarProps> = ({
                         }
                       }}
                     >
-                      {/* Warm accent bar that grows in when active */}
+                      {/* Warm accent bar */}
                       <span
                         className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-300 ease-out ${active ? 'h-5 opacity-100' : 'h-0 opacity-0'
                           }`}
@@ -296,37 +280,7 @@ export const Sidebar: FC<SidebarProps> = ({
 
         {/* Bottom Section */}
         <div className="p-3 relative z-10 space-y-2">
-          {!isCollapsed && (
-            <div
-              className="mx-1 rounded-xl px-3 py-2.5"
-              style={{ background: 'rgba(255,255,255,0.08)' }}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/55">
-                  Plan
-                </span>
-                <span
-                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${isPro ? 'bg-[#FBEED9] text-[#3E342B]' : 'bg-white/15 text-white/85'
-                    }`}
-                >
-                  {isPro ? 'Pro' : 'Starter'}
-                </span>
-              </div>
-              {canUpgrade && onUpgrade && (
-                <button
-                  onClick={() => {
-                    onUpgrade();
-                    onCloseMobile?.();
-                  }}
-                  className="mt-2 w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold py-1.5 rounded-lg cursor-pointer transition-colors"
-                  style={{ background: 'linear-gradient(135deg, #FBEED9 0%, #E9DCC8 100%)', color: '#3E342B' }}
-                >
-                  <Crown className="w-3 h-3" />
-                  Upgrade to Pro
-                </button>
-              )}
-            </div>
-          )}
+
 
           {isAdmin && (
             <button
@@ -335,7 +289,7 @@ export const Sidebar: FC<SidebarProps> = ({
                 onCloseMobile?.();
               }}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium cursor-pointer ${currentPage === 'admin' ? 'text-white bg-white/15' : 'text-white/75 hover:bg-white/10'
-                } ${isCollapsed ? 'justify-center' : ''}`}
+              } ${isCollapsed ? 'justify-center' : ''}`}
             >
               <Shield className="w-4 h-4" />
               {!isCollapsed && <span>Admin</span>}

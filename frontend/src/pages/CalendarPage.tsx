@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -69,6 +69,14 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEventForDetail, setSelectedEventForDetail] = useState<CalendarEvent | null>(null);
   const [formData, setFormData] = useState(emptyForm);
+  const selectedDateRef = useRef<HTMLDivElement>(null);
+
+  /** Scroll to the selected-date panel on mobile */
+  const scrollToSelectedDate = useCallback(() => {
+    if (window.innerWidth < 1024 && selectedDateRef.current) {
+      selectedDateRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -188,7 +196,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: T.ink }}>Calendar</h1>
           <p className="text-xs mt-0.5" style={{ color: T.muted }}>
@@ -196,24 +204,24 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* View Toggle */}
           <div className="segmented-control">
             <button
               onClick={() => setViewMode('month')}
-              className={`px-2.5 py-1 text-[11px] rounded-md flex items-center gap-1.5 transition-all cursor-pointer ${viewMode === 'month' ? 'bg-white font-medium shadow-2xs' : ''}`}
+              className={`px-2 py-1 text-[11px] rounded-md flex items-center gap-1 transition-all cursor-pointer ${viewMode === 'month' ? 'bg-white font-medium shadow-2xs' : ''}`}
               style={{ color: viewMode === 'month' ? T.ink : T.muted }}
             >
               <LayoutGrid className="w-3 h-3" />
-              <span>Month</span>
+              <span className="hidden sm:inline">Month</span>
             </button>
             <button
               onClick={() => setViewMode('agenda')}
-              className={`px-2.5 py-1 text-[11px] rounded-md flex items-center gap-1.5 transition-all cursor-pointer ${viewMode === 'agenda' ? 'bg-white font-medium shadow-2xs' : ''}`}
+              className={`px-2 py-1 text-[11px] rounded-md flex items-center gap-1 transition-all cursor-pointer ${viewMode === 'agenda' ? 'bg-white font-medium shadow-2xs' : ''}`}
               style={{ color: viewMode === 'agenda' ? T.ink : T.muted }}
             >
               <List className="w-3 h-3" />
-              <span>Agenda</span>
+              <span className="hidden sm:inline">Agenda</span>
             </button>
           </div>
 
@@ -223,16 +231,14 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
               onClick={handlePrevMonth}
               className="p-1.5 rounded-md transition-colors cursor-pointer hover:bg-[#F1EDE7]"
               style={{ color: T.muted }}
-              title="Previous Month"
               aria-label="Previous Month"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={handleJumpToToday}
-              className="px-2 py-1 text-[11px] font-semibold rounded-md transition-colors cursor-pointer hover:bg-[#F1EDE7]"
+              className="px-2 py-1 text-[11px] font-semibold rounded-md transition-colors cursor-pointer hover:bg-[#F1EDE7] whitespace-nowrap"
               style={{ color: T.ink }}
-              title="Jump to current date"
             >
               {currentMonthLabel}
             </button>
@@ -240,7 +246,6 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
               onClick={handleNextMonth}
               className="p-1.5 rounded-md transition-colors cursor-pointer hover:bg-[#F1EDE7]"
               style={{ color: T.muted }}
-              title="Next Month"
               aria-label="Next Month"
             >
               <ChevronRight className="w-4 h-4" />
@@ -248,13 +253,21 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
           </div>
 
           <Button
-            onClick={() => openCreateForDate(selectedDateStr || '2024-05-20')}
+            onClick={() => openCreateForDate(selectedDateStr || new Date().toISOString().slice(0, 10))}
             variant="primary"
             size="sm"
             icon={<Plus className="w-3.5 h-3.5" />}
+            className="hidden sm:flex"
           >
             Add Event
           </Button>
+          <button
+            onClick={() => openCreateForDate(selectedDateStr || new Date().toISOString().slice(0, 10))}
+            className="sm:hidden p-2 rounded-lg cursor-pointer transition-colors"
+            style={{ backgroundColor: T.dark, color: '#fff' }}
+          >
+            <Plus className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -329,6 +342,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
                           setCurrentDate(new Date(cellDate.getFullYear(), cellDate.getMonth(), 1));
                           setSelectedDay(cell.day);
                         }
+                        scrollToSelectedDate();
                       }}
                       className={`h-[68px] sm:h-[76px] p-1.5 sm:p-2 transition-colors cursor-pointer flex flex-col justify-between group select-none ${
                         !cell.isCurrentMonth
@@ -381,6 +395,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
                             onClick={e => {
                               e.stopPropagation();
                               setSelectedEventForDetail(ev);
+                              scrollToSelectedDate();
                             }}
                             className="px-1.5 py-0.5 rounded text-[10px] font-medium truncate leading-tight flex items-center gap-1"
                             style={{ backgroundColor: T.surfaceWarm, color: T.body }}
@@ -425,13 +440,13 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
           </div>
 
           {/* Side Panel: Selected Day & Upcoming Items */}
-          <div className="lg:col-span-4 space-y-4">
+          <div ref={selectedDateRef} className="lg:col-span-4 space-y-4">
             {/* Selected Date Card */}
             <Card className="p-4 sm:p-5">
               <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: T.bg }}>
                 <div>
                   <div className="text-[10px] uppercase font-semibold tracking-wider" style={{ color: T.muted }}>
-                    Selected date
+                    {selectedDateEvents.length > 0 ? `${selectedDateEvents.length} event${selectedDateEvents.length === 1 ? '' : 's'} on` : 'Selected date'}
                   </div>
                   <h3 className="font-bold text-sm mt-0.5" style={{ color: T.ink }}>
                     {selectedDateStr
@@ -452,7 +467,7 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
             size="sm"
             icon={<Plus className="w-3.5 h-3.5" />}
           >
-            Add Event
+            Add
           </Button>
                 )}
               </div>
@@ -572,81 +587,54 @@ export const CalendarPage: React.FC<CalendarPageProps> = ({
           </div>
         </div>
       ) : (
-        /* Agenda / Tabular List View */
-        <Card padding="none" className="overflow-hidden" style={{ borderColor: T.border }}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead
-                className="border-b text-[11px] font-semibold uppercase tracking-wider"
-                style={{ backgroundColor: T.surfaceWarm, borderColor: T.border, color: T.muted }}
+        /* Agenda / List View */
+        <div className="space-y-2">
+          {filteredEvents.length === 0 ? (
+            <Card className="py-12 text-center" style={{ borderColor: T.border }}>
+              <p className="text-sm" style={{ color: T.muted }}>No events scheduled.</p>
+            </Card>
+          ) : (
+            filteredEvents.map(ev => (
+              <div
+                key={ev.id}
+                className="flex items-start gap-3 px-3 sm:px-4 py-3 rounded-xl border transition-colors cursor-pointer hover:bg-[#F1EDE7]/40"
+                style={{ borderColor: T.border, backgroundColor: T.surface }}
+                onClick={() => setSelectedEventForDetail(ev)}
               >
-                <tr>
-                  <th className="py-3 px-5">Date</th>
-                  <th className="py-3 px-4">Event</th>
-                  <th className="py-3 px-4">Client</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Description</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F4F0EA]">
-                {filteredEvents.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-sm" style={{ color: T.muted }}>
-                      No events scheduled. Click "Add Event" to create one.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredEvents.map(ev => (
-                    <tr
-                      key={ev.id}
-                      className="hover:bg-[#F1EDE7]/60 transition-colors cursor-pointer"
-                      onClick={() => setSelectedEventForDetail(ev)}
-                    >
-                      <td className="py-3 px-5 font-mono text-xs tabular-nums" style={{ color: T.ink }}>
-                        {ev.date}
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-xs" style={{ color: T.ink }}>
-                        {ev.title}
-                      </td>
-                      <td className="py-3 px-4 text-xs" style={{ color: T.body }}>
-                        {ev.clientName}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: T.body }}>
-                          <span
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: typeMeta[ev.type]?.dot || T.muted }}
-                          />
-                          {typeMeta[ev.type]?.label}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-xs max-w-xs truncate" style={{ color: T.muted }}>
-                        {ev.description || '—'}
-                      </td>
-                      <td
-                        className="py-3 px-4 text-right"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={async () => {
-                            await onDeleteEvent(ev.id);
-                            showToast('Event deleted', 'info');
-                          }}
-                          className="p-1.5 rounded-lg hover:bg-[#FFF5F5] hover:text-[#BD5C48] transition-colors cursor-pointer"
-                          style={{ color: T.muted }}
-                          title="Delete Event"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                <span
+                  className="w-2 h-2 rounded-full mt-1.5 shrink-0"
+                  style={{ backgroundColor: typeMeta[ev.type]?.dot || T.muted }}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold" style={{ color: T.ink }}>{ev.title}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: T.surfaceWarm, color: T.muted }}>{typeMeta[ev.type]?.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 text-[11px]" style={{ color: T.muted }}>
+                    <span className="font-mono tabular-nums">{ev.date}</span>
+                    <span>·</span>
+                    <span>{ev.clientName}</span>
+                  </div>
+                  {ev.description && (
+                    <p className="text-[11px] mt-1 truncate" style={{ color: T.body }}>{ev.description}</p>
+                  )}
+                </div>
+                <button
+                  onClick={async e => {
+                    e.stopPropagation();
+                    await onDeleteEvent(ev.id);
+                    showToast('Event deleted', 'info');
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-[#FFF5F5] hover:text-[#BD5C48] transition-colors cursor-pointer shrink-0"
+                  style={{ color: T.muted }}
+                  title="Delete Event"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       )}
 
       {/* Add Event Modal */}

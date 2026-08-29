@@ -34,6 +34,15 @@ export class ProjectsController {
     return this.projectsService.findAll(String(user._id), search, clientId);
   }
 
+  /** POST /api/projects */
+  @Post()
+  create(
+    @CurrentUser() user: UserDocument,
+    @Body() dto: CreateProjectDto,
+  ) {
+    return this.projectsService.create(user, dto.clientId, dto);
+  }
+
   /** GET /api/projects/:id */
   @Get(':id')
   findOne(

@@ -17,7 +17,6 @@ import { UserDocument } from '../users/user.schema';
 import { Client } from '../clients/client.schema';
 import { Project } from '../projects/project.schema';
 import { Invoice } from '../invoices/invoice.schema';
-import { AiUsageService } from '../ai-usage/ai-usage.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 
 const PRO_PERIOD_DAYS = 30;
@@ -33,7 +32,6 @@ export class SubscriptionsService {
     @InjectModel(Invoice.name) private readonly invoiceModel: Model<any>,
     private readonly usersService: UsersService,
     private readonly paymentService: PaymentService,
-    private readonly aiUsageService: AiUsageService,
     private readonly entitlements: EntitlementsService,
   ) {}
 
@@ -255,7 +253,7 @@ export class SubscriptionsService {
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
     );
 
-    const [activeClients, activeProjects, invoicesThisMonth, aiUsage] =
+    const [activeClients, activeProjects, invoicesThisMonth] =
       await Promise.all([
         this.clientModel.countDocuments({
           userId: new Types.ObjectId(userId),
@@ -269,7 +267,6 @@ export class SubscriptionsService {
           userId: new Types.ObjectId(userId),
           createdAt: { $gte: monthStart, $lt: monthEnd },
         }),
-        this.aiUsageService.getUsage(user),
       ]);
 
     const ent = this.entitlements.snapshot(user);
@@ -291,7 +288,6 @@ export class SubscriptionsService {
         limit: lim.invoicesPerMonth,
         unlimited: lim.invoicesPerMonth === UNLIMITED,
       },
-      aiProposalsToday: aiUsage,
     };
   }
 

@@ -2,15 +2,22 @@ import type {
   User,
   Client,
   Project,
-  Proposal,
   Invoice,
   DashboardMetrics,
   AnalyticsData,
-  CalendarEvent,
-  AiUsage
+  CalendarEvent
 } from '../types';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
+/** Convert empty-string values to undefined so optional DTO validators pass */
+function sanitizePayload<T extends Record<string, any>>(obj: T): T {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = v === '' ? undefined : v;
+  }
+  return out as T;
+}
 
 /** Read the JWT from localStorage — set after login/register */
 function getAuthHeader(): Record<string, string> {
@@ -105,7 +112,7 @@ export const api = {
     return res.json();
   },
 
-  async getClientById(id: string): Promise<{ client: Client; projects: Project[]; proposals: Proposal[]; invoices: Invoice[] }> {
+  async getClientById(id: string): Promise<{ client: Client; projects: Project[]; invoices: Invoice[]; activities: import('../types').ActivityItem[] }> {
     const res = await apiFetch(`${API_BASE}/clients/${id}`);
     if (!res.ok) throw new Error('Client not found');
     return res.json();
@@ -114,12 +121,6 @@ export const api = {
   async getClientProjects(clientId: string): Promise<{ projects: Project[]; total: number }> {
     const res = await apiFetch(`${API_BASE}/clients/${clientId}/projects`);
     if (!res.ok) throw new Error('Failed to fetch client projects');
-    return res.json();
-  },
-
-  async getClientProposals(clientId: string): Promise<{ proposals: Proposal[]; total: number }> {
-    const res = await apiFetch(`${API_BASE}/clients/${clientId}/proposals`);
-    if (!res.ok) throw new Error('Failed to fetch client proposals');
     return res.json();
   },
 
@@ -132,16 +133,16 @@ export const api = {
   async createClient(client: Partial<Client>): Promise<{ client: Client }> {
     const res = await apiFetch(`${API_BASE}/clients`, {
       method: 'POST',
-      body: JSON.stringify(client)
+      body: JSON.stringify(sanitizePayload(client as Record<string, any>))
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       const e = new Error((err as any).message || 'Failed to create client') as Error & {
         code?: string;
-        upgradeRequired?: boolean;
+
       };
       e.code = (err as any).code;
-      e.upgradeRequired = (err as any).upgradeRequired;
+
       throw e;
     }
     return res.json();
@@ -150,9 +151,12 @@ export const api = {
   async updateClient(id: string, client: Partial<Client>): Promise<{ client: Client }> {
     const res = await apiFetch(`${API_BASE}/clients/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(client)
+      body: JSON.stringify(sanitizePayload(client as Record<string, any>))
     });
-    if (!res.ok) throw new Error('Failed to update client');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).message || 'Failed to update client');
+    }
     return res.json();
   },
 
@@ -173,7 +177,7 @@ export const api = {
     return res.json();
   },
 
-  async getProjectById(id: string): Promise<{ project: Project; client?: Client; proposals: Proposal[]; invoices: Invoice[] }> {
+  async getProjectById(id: string): Promise<{ project: Project; client?: Client; invoices: Invoice[] }> {
     const res = await apiFetch(`${API_BASE}/projects/${id}`);
     if (!res.ok) throw new Error('Project not found');
     return res.json();
@@ -188,10 +192,29 @@ export const api = {
       const err = await res.json().catch(() => ({}));
       const e = new Error((err as any).message || 'Failed to create project') as Error & {
         code?: string;
-        upgradeRequired?: boolean;
+
       };
       e.code = (err as any).code;
-      e.upgradeRequired = (err as any).upgradeRequired;
+
+      throw e;
+    }
+    return res.json();
+  },
+
+  /** Create a project inside a specific client via the client-scoped endpoint */
+  async createClientProject(clientId: string, project: Partial<Project>): Promise<{ project: Project }> {
+    const res = await apiFetch(`${API_BASE}/clients/${encodeURIComponent(clientId)}/projects`, {
+      method: 'POST',
+      body: JSON.stringify(project)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const e = new Error((err as any).message || 'Failed to create project') as Error & {
+        code?: string;
+
+      };
+      e.code = (err as any).code;
+
       throw e;
     }
     return res.json();
@@ -221,96 +244,6 @@ export const api = {
     return res.json();
   },
 
-  // ── Proposals ─────────────────────────────────────────────────────────────────
-
-  async getProposals(search?: string, clientId?: string): Promise<{ proposals: Proposal[]; total: number }> {
-    const params = new URLSearchParams();
-    if (search) params.append('search', search);
-    if (clientId) params.append('clientId', clientId);
-    const res = await apiFetch(`${API_BASE}/proposals?${params.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch proposals');
-    return res.json();
-  },
-
-  async getProposalById(id: string): Promise<{ proposal: Proposal; client?: Client }> {
-    const res = await apiFetch(`${API_BASE}/proposals/${id}`);
-    if (!res.ok) throw new Error('Proposal not found');
-    return res.json();
-  },
-
-  async generateProposalAI(payload: {
-    clientName: string;
-    projectName?: string;
-    projectTitle: string;
-    description: string;
-    budget?: string | number;
-    tone?: string;
-  }): Promise<{ proposal: any; usage?: AiUsage }> {
-    const res = await apiFetch(`${API_BASE}/proposals/generate`, {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) {
-      let body: any = {};
-      try {
-        body = await res.json();
-      } catch {
-        // ignore parse failures
-      }
-      const err: any = new Error(body?.message || 'Failed to generate proposal with AI');
-      // Carry structured quota info so the UI can show a precise message.
-      if (res.status === 429) {
-        err.status = 429;
-        err.quota = body;
-      }
-      throw err;
-    }
-    return res.json();
-  },
-
-  /** Current user's daily AI usage (quota). */
-  async getAiUsage(): Promise<AiUsage> {
-    const res = await apiFetch(`${API_BASE}/ai/usage`);
-    if (!res.ok) throw new Error('Failed to fetch AI usage');
-    return res.json();
-  },
-
-  async createProposal(proposal: Partial<Proposal>): Promise<{ proposal: Proposal }> {
-    const res = await apiFetch(`${API_BASE}/proposals`, {
-      method: 'POST',
-      body: JSON.stringify(proposal)
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error((err as any).message || 'Failed to save proposal');
-    }
-    return res.json();
-  },
-
-  async updateProposal(id: string, proposal: Partial<Proposal>): Promise<{ proposal: Proposal }> {
-    const res = await apiFetch(`${API_BASE}/proposals/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(proposal)
-    });
-    if (!res.ok) throw new Error('Failed to update proposal');
-    return res.json();
-  },
-
-  async updateProposalStatus(id: string, status: string): Promise<{ proposal: Proposal }> {
-    const res = await apiFetch(`${API_BASE}/proposals/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status })
-    });
-    if (!res.ok) throw new Error('Failed to update proposal status');
-    return res.json();
-  },
-
-  async deleteProposal(id: string): Promise<{ success: boolean }> {
-    const res = await apiFetch(`${API_BASE}/proposals/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete proposal');
-    return res.json();
-  },
-
   // ── Invoices ─────────────────────────────────────────────────────────────────
 
   async getInvoices(search?: string, clientId?: string): Promise<{ invoices: Invoice[]; total: number }> {
@@ -337,10 +270,29 @@ export const api = {
       const err = await res.json().catch(() => ({}));
       const e = new Error((err as any).message || 'Failed to create invoice') as Error & {
         code?: string;
-        upgradeRequired?: boolean;
+
       };
       e.code = (err as any).code;
-      e.upgradeRequired = (err as any).upgradeRequired;
+
+      throw e;
+    }
+    return res.json();
+  },
+
+  /** Create an invoice inside a specific client via the client-scoped endpoint */
+  async createClientInvoice(clientId: string, invoice: Partial<Invoice>): Promise<{ invoice: Invoice }> {
+    const res = await apiFetch(`${API_BASE}/clients/${encodeURIComponent(clientId)}/invoices`, {
+      method: 'POST',
+      body: JSON.stringify(invoice)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const e = new Error((err as any).message || 'Failed to create invoice') as Error & {
+        code?: string;
+
+      };
+      e.code = (err as any).code;
+
       throw e;
     }
     return res.json();
@@ -387,7 +339,6 @@ export const api = {
         analytics: {
           totalRevenue: 0,
           avgProjectValue: 0,
-          proposalWinRate: 0,
           collectionRate: 0,
           monthlyRevenue: [],
           topClientsRevenue: [],
@@ -403,7 +354,6 @@ export const api = {
       analytics: {
         totalRevenue: raw.totalRevenue ?? 0,
         avgProjectValue: raw.avgProjectValue ?? 0,
-        proposalWinRate: raw.proposalWinRate ?? 0,
         collectionRate: raw.collectionRate ?? 0,
         monthlyRevenue: raw.monthlyRevenue ?? [],
         topClientsRevenue: raw.topClientsRevenue ?? []
@@ -445,75 +395,6 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as any).message || 'Failed to delete calendar event');
-    }
-    return res.json();
-  },
-
-  // ── AI Chat ─────────────────────────────────────────────────────────────────
-
-  async askAI(prompt: string, context?: any): Promise<{ reply: string }> {
-    const res = await apiFetch(`${API_BASE}/ai/chat`, {
-      method: 'POST',
-      body: JSON.stringify({ message: prompt, context })
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const e = new Error((err as any).message || 'Failed to send message to AI') as Error & {
-        code?: string;
-        upgradeRequired?: boolean;
-      };
-      e.code = (err as any).code;
-      e.upgradeRequired = (err as any).upgradeRequired;
-      throw e;
-    }
-    return res.json();
-  },
-
-  // ── Subscriptions ───────────────────────────────────────────────────────────
-
-  async getSubscription(): Promise<import('../types').SubscriptionInfo> {
-    const res = await apiFetch(`${API_BASE}/subscriptions/me`);
-    if (!res.ok) throw new Error('Failed to fetch subscription');
-    return res.json();
-  },
-
-  async createCheckout(simulate?: 'success' | 'failure'): Promise<{
-    sessionId: string;
-    provider: string;
-    status: string;
-    amountCents: number;
-    currency: string;
-    plan: string;
-    displayName: string;
-    priceMonthly: number;
-    benefits: string[];
-  }> {
-    const res = await apiFetch(`${API_BASE}/subscriptions/checkout`, {
-      method: 'POST',
-      body: JSON.stringify(simulate ? { simulate } : {}),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error((err as any).message || 'Failed to start checkout');
-    }
-    return res.json();
-  },
-
-  async confirmCheckout(
-    sessionId: string,
-    simulate?: 'success' | 'failure',
-  ): Promise<{ success: boolean; user: User; message: string }> {
-    const res = await apiFetch(`${API_BASE}/subscriptions/confirm`, {
-      method: 'POST',
-      body: JSON.stringify({ sessionId, ...(simulate ? { simulate } : {}) }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const e = new Error((err as any).message || 'Payment failed') as Error & {
-        code?: string;
-      };
-      e.code = (err as any).code || 'PAYMENT_FAILED';
-      throw e;
     }
     return res.json();
   },

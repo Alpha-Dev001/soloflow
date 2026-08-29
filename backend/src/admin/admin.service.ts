@@ -11,7 +11,6 @@ import {
   Subscription,
   SubscriptionDocument,
 } from '../subscriptions/subscription.schema';
-import { AiUsage, AiUsageDocument } from '../ai-usage/ai-usage.schema';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 
 @Injectable()
@@ -22,8 +21,6 @@ export class AdminService {
     private readonly entitlements: EntitlementsService,
     @InjectModel(Subscription.name)
     private readonly subscriptionModel: Model<SubscriptionDocument>,
-    @InjectModel(AiUsage.name)
-    private readonly aiUsageModel: Model<AiUsageDocument>,
   ) {}
 
   private sanitizeUser(user: any) {
@@ -140,22 +137,10 @@ export class AdminService {
       this.usersService.count(filter),
     ]);
 
-    // Attach today's AI usage where available
-    const today = new Date().toISOString().slice(0, 10);
-    const userIds = users.map((u) => u._id);
-    const usageDocs = await this.aiUsageModel
-      .find({ userId: { $in: userIds }, date: today })
-      .lean()
-      .exec();
-    const usageMap = new Map(
-      usageDocs.map((d: any) => [String(d.userId), d.proposalGenerations || 0]),
-    );
-
     return {
       users: users.map((u) => ({
         ...this.sanitizeUser(u),
         entitlements: this.entitlements.snapshot(u),
-        aiUsageToday: usageMap.get(String(u._id)) || 0,
       })),
       total,
       page,

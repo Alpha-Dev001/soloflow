@@ -16,12 +16,18 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // CORS — allow the Vite dev server and production frontend
+  const corsOrigins = [
+    'http://localhost:3000',   // Vite dev server (frontend/)
+    'http://localhost:5173',   // Vite fallback port
+    'http://127.0.0.1:3000',
+  ];
+
+  // Allow the deployed Cloudflare Pages frontend
+  const frontendUrl = configService.get<string>('FRONTEND_URL');
+  if (frontendUrl) corsOrigins.push(frontendUrl);
+
   app.enableCors({
-    origin: [
-      'http://localhost:3000',   // Vite dev server (frontend/)
-      'http://localhost:5173',   // Vite fallback port
-      'http://127.0.0.1:3000',
-    ],
+    origin: corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

@@ -1,15 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Menu, Plus, UserPlus, FolderPlus, FilePlus, ReceiptText, RefreshCw, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Search, Menu, Plus, UserPlus, FolderPlus, FilePlus, ReceiptText, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Logo } from '../ui/Logo';
-import type { User, Client, Project, Proposal, Invoice, ActivityItem } from '../../types';
+import type { User, Client, Project, Invoice, ActivityItem } from '../../types';
 import type { NavPage } from './Sidebar';
 
 export interface SearchData {
   clients: Client[];
   projects: Project[];
-  proposals: Proposal[];
   invoices: Invoice[];
 }
 
@@ -17,7 +16,7 @@ interface TopbarProps {
   user: User | null;
   onOpenMobileMenu: () => void;
   onNavigate: (page: NavPage, param?: string) => void;
-  onOpenQuickCreate?: (type: 'client' | 'project' | 'proposal' | 'invoice') => void;
+  onOpenQuickCreate?: (type: 'client' | 'project' | 'invoice') => void;
   onResetSeed?: () => void;
   isSidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
@@ -29,7 +28,7 @@ type SearchResult = {
   key: string;
   label: string;
   sub: string;
-  type: 'Client' | 'Project' | 'Proposal' | 'Invoice';
+  type: 'Client' | 'Project' | 'Invoice';
   go: () => void;
 };
 
@@ -64,11 +63,6 @@ export const Topbar: React.FC<TopbarProps> = ({
     searchData.projects.forEach(p => {
       if (p.title.toLowerCase().includes(q) || p.clientName.toLowerCase().includes(q)) {
         out.push({ key: `project-${p.id}`, label: p.title, sub: p.clientName, type: 'Project', go: () => onNavigate('projects') });
-      }
-    });
-    searchData.proposals.forEach(pr => {
-      if (pr.title.toLowerCase().includes(q) || pr.proposalNumber.toLowerCase().includes(q) || pr.clientName.toLowerCase().includes(q)) {
-        out.push({ key: `proposal-${pr.id}`, label: pr.title, sub: `${pr.proposalNumber} · ${pr.clientName}`, type: 'Proposal', go: () => onNavigate('proposal-editor', pr.id) });
       }
     });
     searchData.invoices.forEach(inv => {
@@ -196,19 +190,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 
       {/* Right section: Quick Create, Notifications, Profile */}
       <div className="flex items-center gap-2 sm:gap-2.5">
-        {/* Reset / Demo seed button */}
-        {onResetSeed && (
-          <Button
-            variant="secondary"
-            size="xs"
-            onClick={onResetSeed}
-            icon={<RefreshCw className="w-3 h-3" />}
-            title="Reset to default demo seed data"
-            className="hidden md:inline-flex text-[#5E5650]"
-          >
-            <span>Reset Demo</span>
-          </Button>
-        )}
+
 
         {/* Quick Create Dropdown */}
         <div className="relative">
@@ -236,16 +218,6 @@ export const Topbar: React.FC<TopbarProps> = ({
                 >
                   <ReceiptText className="w-3.5 h-3.5 text-[#6B6158]" />
                   <span>Create Invoice</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowQuickMenu(false);
-                    onOpenQuickCreate ? onOpenQuickCreate('proposal') : onNavigate('proposal-new');
-                  }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-[#1A1918] hover:bg-[#F1EDE7] rounded-lg text-left transition-colors cursor-pointer"
-                >
-                  <FilePlus className="w-3.5 h-3.5 text-[#6B6158]" />
-                  <span>Generate Proposal</span>
                 </button>
                 <button
                   onClick={() => {

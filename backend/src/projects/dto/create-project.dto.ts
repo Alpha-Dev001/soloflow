@@ -9,6 +9,10 @@ import {
 } from 'class-validator';
 
 export class CreateProjectDto {
+  @IsOptional()
+  @IsString()
+  clientId?: string;
+
   @IsString()
   title: string;
 
@@ -38,8 +42,4 @@ export class CreateProjectDto {
   @IsOptional()
   @IsArray()
   tags?: string[];
-
-  @IsOptional()
-  @IsString()
-  proposalId?: string;
 }

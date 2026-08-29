@@ -61,14 +61,6 @@ export class User {
     routingNumber?: string;
     accountNumber?: string;
   };
-
-  @Prop({
-    type: { defaultTone: String },
-    default: { defaultTone: 'Professional' },
-  })
-  aiSettings?: {
-    defaultTone?: string;
-  };
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

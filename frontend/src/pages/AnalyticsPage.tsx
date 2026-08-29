@@ -4,17 +4,14 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useToast } from '../components/ui/Toast';
-import type { AnalyticsData, Client, Project, Invoice, Proposal } from '../types';
+import type { AnalyticsData, Client, Project, Invoice } from '../types';
 
 interface AnalyticsPageProps {
   analytics: AnalyticsData;
   clients?: Client[];
   projects?: Project[];
   invoices?: Invoice[];
-  proposals?: Proposal[];
   isLoading?: boolean;
-  locked?: boolean;
-  onUpgrade?: () => void;
 }
 
 /* ── Design tokens (matched to landing & auth pages) ── */
@@ -37,29 +34,9 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
   clients = [],
   projects = [],
   invoices = [],
-  proposals = [],
   isLoading = false,
-  locked = false,
-  onUpgrade
 }) => {
   const { showToast } = useToast();
-
-  if (locked) {
-    return (
-      <div className="max-w-lg mx-auto py-16 text-center space-y-4">
-        <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'rgba(147,122,98,0.12)' }}>
-          <BarChart2 className="w-6 h-6" style={{ color: T.accent }} />
-        </div>
-        <h1 className="text-xl font-semibold" style={{ color: T.ink }}>Analytics is a Pro feature</h1>
-        <p className="text-sm" style={{ color: T.body }}>
-          Upgrade to Pro to unlock financial analytics, win-rate metrics, and revenue reports.
-        </p>
-        {onUpgrade && (
-          <Button onClick={onUpgrade}>Upgrade to Pro</Button>
-        )}
-      </div>
-    );
-  }
 
   /* ── Real data derived from workspace entities ── */
   const totalRevenue = useMemo(
@@ -76,12 +53,6 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 
   const activeProjectsCount = projects.filter(p => p.status === 'In Progress').length;
   const completedProjectsCount = projects.filter(p => p.status === 'Completed').length;
-
-  const proposalWinRate = useMemo(() => {
-    const total = proposals.length;
-    const accepted = proposals.filter(p => p.status === 'Accepted').length;
-    return total > 0 ? Math.round((accepted / total) * 100) : 0;
-  }, [proposals]);
 
   const avgDealSize = clients.length > 0 ? Math.round(totalRevenue / clients.length) : 0;
 
@@ -103,7 +74,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
   const pendingValue = pendingInvoices.reduce((s, i) => s + i.total, 0);
 
   // True when the account has no data at all — show an onboarding nudge
-  const isEmpty = invoices.length === 0 && projects.length === 0 && proposals.length === 0 && clients.length === 0;
+  const isEmpty = invoices.length === 0 && projects.length === 0 && clients.length === 0;
 
   const handleExport = () => {
     showToast('Analytics summary exported', 'success');
@@ -169,14 +140,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
           </p>
         </div>
 
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleExport}
-          icon={<Download className="w-3.5 h-3.5" />}
-        >
-          Export
-        </Button>
+
       </div>
 
 
@@ -235,34 +199,6 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             <>
               <div className="text-[22px] font-bold tracking-tight leading-none mb-1" style={{ color: T.borderStrong }}>—</div>
               <p className="text-[11px] mt-1 leading-relaxed" style={{ color: T.muted }}>Add your first client to see deal size</p>
-            </>
-          )}
-        </Card>
-
-        {/* Win Rate */}
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: T.muted }}>
-              Win Rate
-            </span>
-            {proposals.length > 0 && (
-              <span className="text-[10px] font-medium" style={{ color: '#248A3D' }}>
-                {proposalWinRate}%
-              </span>
-            )}
-          </div>
-          {proposals.length > 0 ? (
-            <>
-              <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
-                {proposals.filter(p => p.status === 'Accepted').length}
-                <span className="text-xs font-normal ml-1" style={{ color: T.muted }}>/ {proposals.length}</span>
-              </div>
-              <p className="text-[11px] mt-2" style={{ color: T.muted }}>Proposals accepted</p>
-            </>
-          ) : (
-            <>
-              <div className="text-[22px] font-bold tracking-tight leading-none mb-1" style={{ color: T.borderStrong }}>—</div>
-              <p className="text-[11px] mt-1 leading-relaxed" style={{ color: T.muted }}>Send proposals to measure win rate</p>
             </>
           )}
         </Card>

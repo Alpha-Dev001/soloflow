@@ -1,28 +1,23 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   Plus,
-  ChevronDown,
-  ArrowUpRight,
-  ArrowDownRight,
-  Clock,
   Calendar as CalendarIcon,
-  FileText,
   Receipt,
-  CheckCircle,
-  AlertCircle,
-  ExternalLink,
-  TrendingUp,
-  TrendingDown,
-  Send,
-  Eye,
-  Sparkles,
   FolderKanban,
-  Users
+  Users,
+  TrendingUp,
+  Clock,
+  ArrowRight,
+  Zap,
+  LayoutDashboard,
+  ChevronRight,
+  FileText
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { RevenueChart, ProjectStatusChart, TopClientsChart } from '../components/charts/RevenueChart';
-import type { DashboardMetrics, User, Invoice, Project, Proposal } from '../types';
+import { Avatar } from '../components/ui/Avatar';
+import { RevenueChart } from '../components/charts/RevenueChart';
+import type { DashboardMetrics, User, Invoice, Project } from '../types';
 import type { NavPage } from '../components/layout/Sidebar';
 
 interface DashboardPageProps {
@@ -30,21 +25,17 @@ interface DashboardPageProps {
   user: User | null;
   invoices: Invoice[];
   projects: Project[];
-  proposals: Proposal[];
   isLoading?: boolean;
   onNavigate: (page: NavPage, param?: string) => void;
-  onOpenQuickCreate?: (type: 'client' | 'project' | 'proposal' | 'invoice') => void;
-  onUpgrade?: () => void;
-  subscriptionUsage?: import('../types').SubscriptionInfo['usage'] | null;
+  onOpenQuickCreate?: (type: 'client' | 'project' | 'invoice') => void;
 }
 
-/* ── Design tokens (matched to landing & auth pages) ── */
 const T = {
   bg: '#F8F7F5',
   surface: '#FFFFFF',
+  surfaceWarm: '#FAF8F5',
   border: '#EDE8E1',
   borderStrong: '#E0D9CF',
-  hairline: 'rgba(74,59,50,0.32)',
   ink: '#1A1918',
   body: '#4A4037',
   muted: '#6B6158',
@@ -55,28 +46,79 @@ const T = {
   warning: '#B4552F'
 };
 
-const currencySymbols: Record<string, string> = {
-  USD: '$', EUR: '€', GBP: '£', RWF: 'RF ', KES: 'KSh ', NGN: '₦', CAD: 'C$', AUD: 'A$'
-};
+const cur = '$';
+
+/* ── Loading Skeleton — matches the real layout exactly ── */
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-5 max-w-7xl mx-auto animate-pulse">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-2">
+          <div className="h-2.5 w-24 rounded-full" style={{ backgroundColor: T.border }} />
+          <div className="h-6 w-48 rounded-lg" style={{ backgroundColor: T.border }} />
+          <div className="h-3 w-64 rounded-full" style={{ backgroundColor: T.border }} />
+        </div>
+        <div className="h-8 w-28 rounded-lg" style={{ backgroundColor: T.border }} />
+      </div>
+
+      {/* KPI Row — compact 4-col */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="rounded-xl p-3.5 border" style={{ backgroundColor: T.surface, borderColor: T.border }}>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg shrink-0" style={{ backgroundColor: T.bg }} />
+              <div className="space-y-1.5 flex-1">
+                <div className="h-2 w-14 rounded-full" style={{ backgroundColor: T.bg }} />
+                <div className="h-5 w-16 rounded" style={{ backgroundColor: T.bg }} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart + Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 rounded-xl border p-5 h-56" style={{ backgroundColor: T.surface, borderColor: T.border }}>
+          <div className="h-3 w-28 rounded-full mb-4" style={{ backgroundColor: T.bg }} />
+          <div className="h-36 rounded-lg" style={{ backgroundColor: T.bg }} />
+        </div>
+        <div className="rounded-xl border p-4 h-56" style={{ backgroundColor: T.surface, borderColor: T.border }}>
+          <div className="h-3 w-20 rounded-full mb-4" style={{ backgroundColor: T.bg }} />
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-10 rounded-lg" style={{ backgroundColor: T.bg }} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="rounded-xl border p-4 h-40" style={{ backgroundColor: T.surface, borderColor: T.border }}>
+            <div className="h-3 w-20 rounded-full mb-4" style={{ backgroundColor: T.bg }} />
+            <div className="space-y-2.5">
+              {[1, 2, 3].map(j => (
+                <div key={j} className="h-8 rounded-lg" style={{ backgroundColor: T.bg }} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   metrics,
   user,
   invoices,
   projects,
-  proposals,
   isLoading = false,
   onNavigate,
   onOpenQuickCreate,
-  onUpgrade,
-  subscriptionUsage
 }) => {
-  const [showNewMenu, setShowNewMenu] = useState(false);
-  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
-  const newBtnRef = useRef<HTMLDivElement>(null);
-  const [timePeriod, setTimePeriod] = useState<'30D' | '90D' | '6M' | '1Y'>('6M');
-
-  // Greeting adapts to the visitor's local time of day
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -84,148 +126,46 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return 'Good evening';
   }, []);
 
-  // Onboarding answers personalize the dashboard
-  const onboarding = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem('soloflow_onboarding') || 'null');
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const cur = currencySymbols[onboarding?.currency || user?.currency || 'USD'] || '$';
-
-  // ── Derived actionable data ──
-  const overdueInvoices = useMemo(
-    () => invoices.filter(i => i.status === 'Overdue'),
-    [invoices]
-  );
-
-  const pendingInvoices = useMemo(
-    () => invoices.filter(i => i.status === 'Pending' || i.status === 'Sent'),
-    [invoices]
-  );
-
-  const awaitingProposals = useMemo(
-    () => proposals.filter(p => p.status === 'Sent' || p.status === 'Viewed'),
-    [proposals]
-  );
-
-  // Attention items — what needs action right now
+  const overdueInvoices = useMemo(() => invoices.filter(i => i.status === 'Overdue'), [invoices]);
+  const pendingInvoices = useMemo(() => invoices.filter(i => i.status === 'Pending' || i.status === 'Sent'), [invoices]);
   const attentionItems = useMemo(() => {
-    const items: { id: string; label: string; detail: string; action: string; onClick: () => void }[] = [];
-
-    overdueInvoices.slice(0, 2).forEach(inv => {
-      const days = Math.ceil((Date.now() - new Date(inv.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+    const items: { id: string; label: string; detail: string; onClick: () => void }[] = [];
+    overdueInvoices.slice(0, 1).forEach(inv => {
       items.push({
         id: `inv-${inv.id}`,
-        label: `Invoice ${inv.invoiceNumber} is ${days}d overdue`,
+        label: `Invoice ${inv.invoiceNumber} overdue`,
         detail: `$${inv.total.toLocaleString()} from ${inv.clientName}`,
-        action: 'View invoice',
-        onClick: () => onNavigate('invoice-detail', inv.id)
+        onClick: () => onNavigate('client-detail', inv.clientId)
       });
     });
-
-    if (awaitingProposals.length > 0) {
-      const prop = awaitingProposals[0];
-      items.push({
-        id: `prop-${prop.id}`,
-        label: `Proposal ${prop.proposalNumber} awaiting response`,
-        detail: `for ${prop.clientName}`,
-        action: 'Follow up',
-        onClick: () => onNavigate('proposal-editor', prop.id)
-      });
-    }
-
-    // Upcoming deadlines from projects
-    const upcomingDeadlines = projects
-      .filter(p => p.status === 'In Progress' || p.status === 'To Do')
-      .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
-      .slice(0, 2);
-
-    upcomingDeadlines.forEach(proj => {
+    projects.filter(p => p.status === 'In Progress').sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()).slice(0, 1).forEach(proj => {
       items.push({
         id: `proj-${proj.id}`,
         label: `${proj.title} deadline approaching`,
         detail: `for ${proj.clientName}`,
-        action: 'Open project',
-        onClick: () => onNavigate('projects')
+        onClick: () => onNavigate('client-detail', proj.clientId)
       });
     });
-
     return items.slice(0, 3);
-  }, [overdueInvoices, awaitingProposals, projects, onNavigate]);
+  }, [overdueInvoices, projects, onNavigate]);
 
-  // ── KPI cards (actionable, not just vanity metrics) ──
-  const kpiCards = [
-    {
-      label: 'This month',
-      value: `${cur}${metrics.totalRevenue.toLocaleString()}`,
-      delta: `+${metrics.revenueGrowthPercent}%`,
-      up: true,
-      note: 'vs. last month',
-      navigateTo: 'analytics' as NavPage
-    },
-    {
-      label: 'To collect',
-      value: `${cur}${metrics.pendingPayments.toLocaleString()}`,
-      delta: `${pendingInvoices.length} invoices`,
-      up: false,
-      note: 'awaiting payment',
-      navigateTo: 'invoices' as NavPage
-    },
-    {
-      label: 'Active projects',
-      value: `${metrics.activeProjects}`,
-      delta: `${projects.filter(p => p.status === 'In Progress').length} in progress`,
-      up: true,
-      note: 'on track',
-      navigateTo: 'projects' as NavPage
-    },
-    {
-      label: 'Deadlines',
-      value: `${metrics.upcoming.length}`,
-      delta: `${overdueInvoices.length} overdue`,
-      up: false,
-      note: 'next 30 days',
-      navigateTo: 'calendar' as NavPage
-    }
-  ];
+  const timelineData = useMemo(() => {
+    const all = metrics.revenueOverview.timeline;
+    return all.slice(-6);
+  }, [metrics.revenueOverview.timeline]);
 
-  // ── Project pipeline (compact) ──
-  const pipelineProjects = projects
-    .filter(p => p.status !== 'Cancelled' && p.status !== 'On Hold')
-    .sort((a, b) => {
-      const order = { 'To Do': 0, 'In Progress': 1, 'Review': 2, 'Completed': 3 };
-      return (order[a.status as keyof typeof order] ?? 99) - (order[b.status as keyof typeof order] ?? 99);
-    })
-    .slice(0, 2); // compact — only show top 2
-
-  // ── Revenue chart data ──
-  const allTimelineData = metrics.revenueOverview.timeline;
-  const timelineData = timePeriod === '30D'
-    ? allTimelineData.slice(-3)
-    : timePeriod === '6M'
-      ? allTimelineData.slice(-6)
-      : timePeriod === '1Y'
-        ? allTimelineData
-        : allTimelineData.slice(-6);
-
-  // ── Today's tasks (from upcoming + overdue) ──
   const todayItems = useMemo(() => {
     const items: { id: string; time: string; title: string; subtitle: string; icon: React.ReactNode; onClick: () => void }[] = [];
-
-    overdueInvoices.slice(0, 2).forEach(inv => {
+    overdueInvoices.slice(0, 1).forEach(inv => {
       items.push({
         id: `today-inv-${inv.id}`,
         time: 'Overdue',
         title: `Follow up: ${inv.invoiceNumber}`,
-        subtitle: `${inv.clientName} · ${cur}${inv.total.toLocaleString()}`,
-        icon: <Receipt className="w-3.5 h-3.5" style={{ color: '#B4552F' }} />,
-        onClick: () => onNavigate('invoice-detail', inv.id)
+        subtitle: `${inv.clientName} · $${inv.total.toLocaleString()}`,
+        icon: <Receipt className="w-3.5 h-3.5" style={{ color: T.warning }} />,
+        onClick: () => onNavigate('client-detail', inv.clientId)
       });
     });
-
     metrics.upcoming.slice(0, 3).forEach(item => {
       items.push({
         id: `today-${item.id}`,
@@ -236,688 +176,329 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         onClick: () => onNavigate('calendar')
       });
     });
-
     return items.slice(0, 4);
-  }, [overdueInvoices, metrics.upcoming, onNavigate, cur]);
+  }, [overdueInvoices, metrics.upcoming, onNavigate]);
 
-  // ── Upcoming (next 7 days) ──
-  const upcomingItems = metrics.upcoming.slice(0, 5);
+  const pipelineProjects = useMemo(() => {
+    return projects
+      .filter(p => p.status !== 'Cancelled' && p.status !== 'On Hold')
+      .sort((a, b) => {
+        const order: Record<string, number> = { 'To Do': 0, 'In Progress': 1, 'Completed': 2 };
+        return (order[a.status] ?? 99) - (order[b.status] ?? 99);
+      })
+      .slice(0, 3);
+  }, [projects]);
 
-  // ── Business health indicators ──
-  const healthIndicators = [
-    {
-      label: 'Cash flow',
-      status: metrics.pendingPayments < metrics.totalRevenue * 0.3 ? 'Healthy' : 'Needs attention',
-      color: metrics.pendingPayments < metrics.totalRevenue * 0.3 ? '#1E7D3F' : '#B4552F'
-    },
-    {
-      label: 'Client pipeline',
-      status: proposals.filter(p => p.status === 'Sent' || p.status === 'Viewed').length > 0 ? 'Good' : 'Low',
-      color: proposals.filter(p => p.status === 'Sent' || p.status === 'Viewed').length > 0 ? '#1E7D3F' : '#937A62'
-    },
-    {
-      label: 'Overdue invoices',
-      status: overdueInvoices.length > 0 ? 'Needs attention' : 'All clear',
-      color: overdueInvoices.length > 0 ? '#B4552F' : '#1E7D3F'
-    },
-    {
-      label: 'Project workload',
-      status: metrics.activeProjects > 8 ? 'High' : metrics.activeProjects > 4 ? 'Medium' : 'Manageable',
-      color: metrics.activeProjects > 8 ? '#B4552F' : metrics.activeProjects > 4 ? '#937A62' : '#1E7D3F'
-    }
-  ];
+  if (isLoading) return <DashboardSkeleton />;
 
-  const newActions = [
-    { label: 'Client', type: 'client' as const, fallback: 'clients' as NavPage },
-    { label: 'Project', type: 'project' as const, fallback: 'projects' as NavPage },
-    { label: 'Invoice', type: 'invoice' as const, fallback: 'invoice-new' as NavPage },
-    { label: 'Proposal', type: 'proposal' as const, fallback: 'proposal-new' as NavPage },
-    { label: 'Task', type: 'project' as const, fallback: 'calendar' as NavPage },
-    { label: 'Meeting', type: 'project' as const, fallback: 'calendar' as NavPage },
-    { label: 'Expense', type: 'invoice' as const, fallback: 'analytics' as NavPage }
-  ];
+  const isEmpty = metrics.totalRevenue === 0 && metrics.activeProjects === 0 && projects.length === 0;
 
-  // ── Loading skeleton — shown while the first API fetch is in flight ──
-  if (isLoading) {
-    return (
-      <div className="space-y-6 max-w-7xl mx-auto animate-pulse">
-        {/* Header skeleton */}
-        <div className="flex flex-col gap-2">
-          <div className="h-3 w-28 rounded-full" style={{ backgroundColor: T.border }} />
-          <div className="h-8 w-56 rounded-lg" style={{ backgroundColor: T.border }} />
-          <div className="h-3 w-72 rounded-full" style={{ backgroundColor: T.border }} />
-        </div>
-        {/* KPI cards skeleton */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-2xl p-5 border" style={{ backgroundColor: T.surface, borderColor: T.border }}>
-              <div className="h-3 w-20 rounded-full mb-3" style={{ backgroundColor: T.bg }} />
-              <div className="h-7 w-24 rounded-lg mb-2" style={{ backgroundColor: T.bg }} />
-              <div className="h-2.5 w-16 rounded-full" style={{ backgroundColor: T.bg }} />
-            </div>
-          ))}
-        </div>
-        {/* Chart + quick actions skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 rounded-2xl border p-6 h-64" style={{ backgroundColor: T.surface, borderColor: T.border }}>
-            <div className="h-4 w-36 rounded-full mb-2" style={{ backgroundColor: T.bg }} />
-            <div className="h-3 w-24 rounded-full mb-6" style={{ backgroundColor: T.bg }} />
-            <div className="h-32 rounded-xl" style={{ backgroundColor: T.bg }} />
-          </div>
-          <div className="rounded-2xl border p-5 h-64" style={{ backgroundColor: T.surface, borderColor: T.border }}>
-            <div className="h-4 w-28 rounded-full mb-4" style={{ backgroundColor: T.bg }} />
-            <div className="grid grid-cols-2 gap-2">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="rounded-xl h-16" style={{ backgroundColor: T.bg }} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Empty workspace — shown after data loads but the account has nothing yet ──
-  const isEmpty =
-    metrics.totalRevenue === 0 &&
-    metrics.activeProjects === 0 &&
-    metrics.pendingPayments === 0 &&
-    invoices.length === 0 &&
-    projects.length === 0 &&
-    proposals.length === 0;
-
+  /* ════════════════════════════════════════════════════════════════════
+     EMPTY STATE — skeleton-style layout matching the real dashboard,
+     with interactive cards in place of each placeholder section.
+     ════════════════════════════════════════════════════════════════════ */
   if (isEmpty) {
-    const emptyActions = [
-      { label: 'Add a client', description: 'Start by recording the people you work for.', action: () => onOpenQuickCreate ? onOpenQuickCreate('client') : onNavigate('clients') },
-      { label: 'Create a project', description: 'Track deliverables, budgets, and deadlines.', action: () => onOpenQuickCreate ? onOpenQuickCreate('project') : onNavigate('projects') },
-      { label: 'Draft a proposal', description: 'Win work with a professional scope document.', action: () => onOpenQuickCreate ? onOpenQuickCreate('proposal') : onNavigate('proposals') },
-      { label: 'Issue an invoice', description: 'Bill clients and track payments.', action: () => onOpenQuickCreate ? onOpenQuickCreate('invoice') : onNavigate('invoices') },
-    ];
-
     return (
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Greeting header — same as the populated state */}
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.16em] font-semibold mb-2" style={{ color: T.accent }}>
-            Workspace overview
-          </p>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em]" style={{ color: T.ink }}>
-            {greeting}, {user?.name?.split(' ')[0] || 'there'}.
-          </h1>
-          <p className="text-sm font-medium mt-1.5" style={{ color: T.body }}>
-            Your workspace is set up. Add your first records to get started.
-          </p>
+      <div className="space-y-5 max-w-7xl mx-auto">
+        {/* ── Header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.16em] font-semibold" style={{ color: T.accent }}>Workspace</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: T.ink }}>{greeting}, {user?.name?.split(' ')[0] || 'there'}.</h1>
+            <p className="text-xs mt-0.5" style={{ color: T.muted }}>Your command center is ready — let's get started.</p>
+          </div>
         </div>
 
-        {/* Zero-state KPI strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* ── KPI Cards — interactive placeholders mirroring real layout ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: 'This month', value: `${cur}0` },
-            { label: 'To collect', value: `${cur}0` },
-            { label: 'Active projects', value: '0' },
-            { label: 'Deadlines', value: '0' },
+            { label: 'Revenue', icon: <TrendingUp className="w-3.5 h-3.5" />, bg: '#F0E9E0', fg: '#82694E', hint: '$0 earned', action: () => onNavigate('clients') },
+            { label: 'To collect', icon: <Receipt className="w-3.5 h-3.5" />, bg: '#F5EDED', fg: '#B4552F', hint: 'No invoices yet', action: () => onNavigate('clients') },
+            { label: 'Active projects', icon: <FolderKanban className="w-3.5 h-3.5" />, bg: '#EEF0EC', fg: '#5A6B5D', hint: 'Start your first', action: () => onNavigate('clients') },
+            { label: 'Deadlines', icon: <Clock className="w-3.5 h-3.5" />, bg: '#EFEDF0', fg: '#6B5F73', hint: 'Zero upcoming', action: () => onNavigate('calendar') },
           ].map(m => (
-            <div
-              key={m.label}
-              className="rounded-2xl border p-5"
-              style={{ backgroundColor: T.surface, borderColor: T.border }}
-            >
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: T.muted }}>{m.label}</p>
-              <p className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.borderStrong }}>{m.value}</p>
-              <p className="text-[11px] mt-2" style={{ color: T.muted }}>No data yet</p>
-            </div>
+            <button key={m.label} onClick={m.action} className="text-left cursor-pointer">
+              <div className="p-3 rounded-xl border transition-all hover:shadow-sm" style={{ borderColor: T.border, backgroundColor: T.surface }}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: m.bg, color: m.fg }}>{m.icon}</div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase font-medium tracking-wide" style={{ color: T.muted }}>{m.label}</div>
+                    <div className="text-lg font-bold tracking-tight leading-none" style={{ color: T.ink }}>—</div>
+                  </div>
+                </div>
+                <p className="text-[10px] mt-2 font-medium" style={{ color: T.muted }}>{m.hint}</p>
+              </div>
+            </button>
           ))}
         </div>
 
-        {/* Action cards */}
-        <div>
-          <h2 className="text-sm font-semibold mb-4" style={{ color: T.ink }}>Where would you like to start?</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {emptyActions.map(action => (
-              <button
-                key={action.label}
-                onClick={action.action}
-                className="group text-left p-5 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(74,59,50,0.08)] cursor-pointer"
-                style={{ backgroundColor: T.surface, borderColor: T.border }}
-              >
-                <p className="text-[13px] font-semibold mb-1.5 group-hover:text-[#82694E] transition-colors" style={{ color: T.ink }}>
-                  {action.label}
-                </p>
-                <p className="text-[11px] leading-relaxed" style={{ color: T.muted }}>
-                  {action.description}
-                </p>
+        {/* ── Revenue Chart + Quick Actions ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Card className="lg:col-span-2 p-5">
+            <div className="flex items-center justify-between pb-3">
+              <div>
+                <h3 className="font-semibold text-xs" style={{ color: T.ink }}>Revenue</h3>
+                <p className="text-[10px] mt-0.5" style={{ color: T.muted }}>Monthly earnings from paid invoices</p>
+              </div>
+            </div>
+            <div className="h-44 rounded-lg flex items-center justify-center" style={{ backgroundColor: T.bg }}>
+              <div className="text-center">
+                <TrendingUp className="w-6 h-6 mx-auto mb-2" style={{ color: T.borderStrong }} />
+                <p className="text-[11px] font-medium" style={{ color: T.muted }}>Revenue will appear here</p>
+                <p className="text-[10px] mt-0.5" style={{ color: T.muted }}>Issue your first invoice to start tracking</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 flex flex-col">
+            <div className="pb-2.5 border-b" style={{ borderColor: T.bg }}>
+              <h3 className="font-semibold text-xs" style={{ color: T.ink }}>Quick Actions</h3>
+            </div>
+            <div className="space-y-1.5 pt-2.5 flex-1">
+              {[
+              { label: 'Clients', icon: <Users className="w-3.5 h-3.5" />, onClick: () => onNavigate('clients') },
+              { label: 'Calendar', icon: <CalendarIcon className="w-3.5 h-3.5" />, onClick: () => onNavigate('calendar') },
+              { label: 'Analytics', icon: <TrendingUp className="w-3.5 h-3.5" />, onClick: () => onNavigate('analytics') },
+            ].map(a => (
+              <button key={a.label} onClick={a.onClick} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-[#F1EDE7]" style={{ color: T.body }}>
+                <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: T.surfaceWarm, border: `1px solid ${T.border}`, color: T.accent }}>{a.icon}</span>
+                {a.label}
               </button>
             ))}
           </div>
-        </div>
+        </Card>
+      </div>
 
-        {/* Subtle workspace tip */}
-        <div
-          className="rounded-2xl border px-5 py-4 flex items-start gap-3"
-          style={{ backgroundColor: '#FAF8F5', borderColor: T.border }}
-        >
-          <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: T.accentSoft }} />
-          <p className="text-[12px] leading-relaxed" style={{ color: T.muted }}>
-            Everything you create here — clients, projects, invoices, and proposals — feeds the analytics and revenue charts automatically.
-            The dashboard reflects your real numbers as soon as you start adding records.
-          </p>
+      {/* ── Bottom Row: Agenda + Pipeline + Health (all empty, matching real sections) ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Agenda */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: T.bg }}>
+              <h3 className="font-semibold text-xs uppercase tracking-wider" style={{ color: T.muted }}>Agenda</h3>
+              <button onClick={() => onNavigate('calendar')} className="text-[10px] font-bold hover:underline cursor-pointer" style={{ color: T.accent }}>Calendar</button>
+            </div>
+            <div className="py-4 text-center">
+              <CalendarIcon className="w-4 h-4 mx-auto mb-1.5" style={{ color: T.borderStrong }} />
+              <p className="text-[11px]" style={{ color: T.muted }}>Nothing scheduled</p>
+              <p className="text-[10px] mt-0.5" style={{ color: T.muted }}>Events will show up here</p>
+            </div>
+          </Card>
+
+          {/* Pipeline */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: T.bg }}>
+              <h3 className="font-semibold text-xs uppercase tracking-wider" style={{ color: T.muted }}>Pipeline</h3>
+              <button onClick={() => onNavigate('clients')} className="text-[10px] font-bold hover:underline cursor-pointer" style={{ color: T.accent }}>Clients</button>
+            </div>
+            <div className="py-4 text-center">
+              <FolderKanban className="w-4 h-4 mx-auto mb-1.5" style={{ color: T.borderStrong }} />
+              <p className="text-[11px]" style={{ color: T.muted }}>No active projects</p>
+              <p className="text-[10px] mt-0.5" style={{ color: T.muted }}>Create a project to track progress</p>
+            </div>
+          </Card>
+
+          {/* Health */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: T.bg }}>
+              <h3 className="font-semibold text-xs uppercase tracking-wider" style={{ color: T.muted }}>Health</h3>
+              <span className="text-[10px] font-bold" style={{ color: T.muted }}>&nbsp;</span>
+            </div>
+            <div className="space-y-2.5 pt-2.5">
+              {[
+                { label: 'Cash flow', status: 'N/A', color: T.muted },
+                { label: 'Pipeline', status: 'N/A', color: T.muted },
+                { label: 'Overdue', status: 'N/A', color: T.muted },
+                { label: 'Workload', status: 'N/A', color: T.muted },
+              ].map(h => (
+                <div key={h.label} className="flex items-center justify-between text-[11px]">
+                  <span className="font-medium" style={{ color: T.body }}>{h.label}</span>
+                  <span className="font-bold text-[10px] px-1.5 py-0.5 rounded" style={{ color: h.color, backgroundColor: `${h.color}0D` }}>{h.status}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
       </div>
     );
   }
 
+  /* ════════════════════════════════════════════════════════════════════
+     LOADED STATE — compact, professional, daily-use dashboard
+     ════════════════════════════════════════════════════════════════════ */
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* ══ Header: Greeting (Professional and Minimalistic) ══ */}
-      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+    <div className="space-y-5 max-w-7xl mx-auto">
+      {/* ══ Header ══ */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.16em] font-semibold mb-2.5" style={{ color: T.accent }}>
-            {onboarding?.businessName || 'Workspace overview'}
-          </p>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em]" style={{ color: T.ink }}>
-            {greeting}, {user?.name?.split(' ')[0] || 'Alpha'}.
-          </h1>
-          <p className="text-sm font-medium mt-1.5" style={{ color: T.body }}>
-            {attentionItems.length > 0
-              ? `You have ${attentionItems.length} action item${attentionItems.length === 1 ? '' : 's'} waiting for you.`
-              : 'All caught up — your workspace is looking clear.'}
+          <p className="text-[10px] uppercase tracking-[0.16em] font-semibold" style={{ color: T.accent }}>Workspace</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: T.ink }}>{greeting}, {user?.name?.split(' ')[0] || 'there'}.</h1>
+          <p className="text-xs mt-0.5" style={{ color: T.muted }}>
+            {attentionItems.length > 0 ? `${attentionItems.length} item${attentionItems.length === 1 ? '' : 's'} need${attentionItems.length === 1 ? 's' : ''} attention` : 'All caught up'}
           </p>
         </div>
-
-        {/* Dropdown "+ New" Button */}
-        <div className="relative" ref={newBtnRef}>
-          <Button
-            onClick={() => {
-              const rect = newBtnRef.current?.getBoundingClientRect();
-              if (rect) {
-                setMenuPos({
-                  top: rect.bottom + 8,
-                  right: window.innerWidth - rect.right,
-                });
-              }
-              setShowNewMenu(!showNewMenu);
-            }}
-            variant="primary"
-            size="sm"
-            icon={<Plus className="w-3.5 h-3.5" />}
-            iconRight={<ChevronDown className="w-3 h-3 opacity-70" />}
-          >
-            <span>New action</span>
-          </Button>
-
-          {showNewMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowNewMenu(false)} />
-              <div
-                className="fixed w-48 border rounded-xl shadow-xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100"
-                style={{
-                  top: menuPos.top,
-                  right: menuPos.right,
-                  backgroundColor: T.surface,
-                  borderColor: T.borderStrong,
-                }}
-              >
-                {newActions.map(action => (
-                  <button
-                    key={action.label}
-                    onClick={() => {
-                      setShowNewMenu(false);
-                      onOpenQuickCreate ? onOpenQuickCreate(action.type) : onNavigate(action.fallback);
-                    }}
-                    className="w-full px-3 py-2 text-[13px] font-medium rounded-lg text-left transition-colors duration-150 cursor-pointer hover:bg-[#F1EDE7]"
-                    style={{ color: T.body }}
-                  >
-                    New {action.label.toLowerCase()}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+        <div className="flex items-center gap-2">
+          <Button onClick={() => onNavigate('clients')} variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>New</Button>
         </div>
       </div>
 
-      {/* ══ Plan & usage (from backend entitlements) ══ */}
-      {user && (
-        <Card className="p-5">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: T.muted }}>
-                  Your plan
-                </span>
-                <span
-                  className="text-[11px] font-bold px-2 py-0.5 rounded-md"
-                  style={
-                    user.entitlements?.isPro || user.plan === 'pro'
-                      ? { background: T.dark, color: '#fff' }
-                      : { background: T.border, color: T.body }
-                  }
-                >
-                  {user.entitlements?.displayName ||
-                    (user.plan === 'pro' ? 'Pro' : 'Starter')}
-                </span>
-                {user.subscriptionStatus && (
-                  <span className="text-[11px] capitalize" style={{ color: T.muted }}>
-                    · {user.subscriptionStatus}
-                  </span>
-                )}
-              </div>
-              <p className="text-sm mt-1.5" style={{ color: T.body }}>
-                {user.entitlements?.isPro || user.plan === 'pro'
-                  ? 'Unlimited resources, advanced analytics, and full AI assistant.'
-                  : 'Starter limits apply. Upgrade anytime to unlock Pro.'}
-              </p>
-              {subscriptionUsage && !(user.entitlements?.isPro || user.plan === 'pro') && (
-                <div className="mt-3 flex flex-wrap gap-3 text-xs" style={{ color: T.muted }}>
-                  <span>
-                    Clients {subscriptionUsage.activeClients.used}/
-                    {subscriptionUsage.activeClients.unlimited
-                      ? '∞'
-                      : subscriptionUsage.activeClients.limit}
-                  </span>
-                  <span>
-                    Projects {subscriptionUsage.activeProjects.used}/
-                    {subscriptionUsage.activeProjects.unlimited
-                      ? '∞'
-                      : subscriptionUsage.activeProjects.limit}
-                  </span>
-                  <span>
-                    Invoices {subscriptionUsage.invoicesThisMonth.used}/
-                    {subscriptionUsage.invoicesThisMonth.unlimited
-                      ? '∞'
-                      : subscriptionUsage.invoicesThisMonth.limit}
-                    /mo
-                  </span>
-                  <span>
-                    AI {subscriptionUsage.aiProposalsToday.remaining}/
-                    {subscriptionUsage.aiProposalsToday.limit} left today
-                  </span>
+      {/* ══ KPI Cards — compact, icon + value + delta ══ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: 'Revenue', value: `${cur}${metrics.totalRevenue.toLocaleString()}`, delta: `+${metrics.revenueGrowthPercent}%`, up: true, icon: <TrendingUp className="w-3.5 h-3.5" />, bg: '#F0E9E0', fg: '#82694E', onClick: () => onNavigate('clients') },
+          { label: 'To collect', value: `${cur}${metrics.pendingPayments.toLocaleString()}`, delta: `${pendingInvoices.length} inv.`, up: false, icon: <Receipt className="w-3.5 h-3.5" />, bg: '#F5EDED', fg: '#B4552F', onClick: () => onNavigate('clients') },
+          { label: 'Active projects', value: String(metrics.activeProjects), delta: `${projects.filter(p => p.status === 'In Progress').length} in progress`, up: true, icon: <FolderKanban className="w-3.5 h-3.5" />, bg: '#EEF0EC', fg: '#5A6B5D', onClick: () => onNavigate('clients') },
+          { label: 'Deadlines', value: String(metrics.upcoming.length), delta: `${overdueInvoices.length} overdue`, up: overdueInvoices.length === 0, icon: <Clock className="w-3.5 h-3.5" />, bg: '#EFEDF0', fg: '#6B5F73', onClick: () => onNavigate('calendar') },
+        ].map(m => (
+          <button key={m.label} onClick={m.onClick} className="text-left cursor-pointer">
+            <div className="p-3 rounded-xl border transition-all hover:shadow-sm" style={{ borderColor: T.border, backgroundColor: T.surface }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: m.bg, color: m.fg }}>{m.icon}</div>
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase font-medium tracking-wide" style={{ color: T.muted }}>{m.label}</div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-lg font-bold tracking-tight leading-none" style={{ color: T.ink }}>{m.value}</span>
+                    <span className="text-[10px] font-semibold px-1 py-0.5 rounded" style={{ color: m.up ? T.success : T.warning, backgroundColor: m.up ? 'rgba(30,125,63,0.08)' : 'rgba(180,85,47,0.08)' }}>
+                      {m.up ? '+' : ''}{m.delta}
+                    </span>
+                  </div>
                 </div>
-              )}
-              {(user.entitlements?.isPro || user.plan === 'pro') &&
-                subscriptionUsage?.aiProposalsToday && (
-                  <p className="mt-2 text-xs" style={{ color: T.muted }}>
-                    AI proposals today:{' '}
-                    {subscriptionUsage.aiProposalsToday.used}/
-                    {subscriptionUsage.aiProposalsToday.limit} used
-                  </p>
-                )}
+              </div>
             </div>
-            {!(user.entitlements?.isPro || user.plan === 'pro') && onUpgrade && (
-              <Button size="sm" onClick={onUpgrade} icon={<Sparkles className="w-3.5 h-3.5" />}>
-                Upgrade to Pro
-              </Button>
+          </button>
+        ))}
+      </div>
+
+      {/* ══ Attention Bar ══ */}
+      {attentionItems.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          {attentionItems.map(item => (
+            <button key={item.id} onClick={item.onClick} className="flex items-center gap-2 px-3 py-2 rounded-lg border text-left cursor-pointer transition-colors hover:bg-[#F1EDE7]/60" style={{ borderColor: T.border, backgroundColor: T.surface }}>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: T.warning }} />
+              <div className="min-w-0">
+                <span className="text-[11px] font-semibold" style={{ color: T.ink }}>{item.label}</span>
+                <span className="text-[10px] ml-1.5" style={{ color: T.muted }}>{item.detail}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ══ Revenue Chart + Quick Actions ══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 p-4">
+          <div className="flex items-center justify-between pb-3">
+            <div>
+              <h3 className="font-semibold text-xs" style={{ color: T.ink }}>Revenue</h3>
+              <p className="text-[10px] mt-0.5" style={{ color: T.muted }}>Monthly earnings from paid invoices</p>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-base font-bold" style={{ color: T.ink }}>
+                {cur}{(timelineData[timelineData.length - 1]?.amount ?? 0).toLocaleString()}
+              </span>
+              {metrics.revenueOverview.growthPercent > 0 && (
+                <span className="text-[10px] font-semibold" style={{ color: T.success }}>+{metrics.revenueOverview.growthPercent}%</span>
+              )}
+            </div>
+          </div>
+          <RevenueChart data={timelineData} currency={cur} height={200} showTarget={false} />
+        </Card>
+
+        <Card className="p-4 flex flex-col">
+          <div className="pb-2.5 border-b" style={{ borderColor: T.bg }}>
+            <h3 className="font-semibold text-xs" style={{ color: T.ink }}>Quick Actions</h3>
+          </div>
+          <div className="space-y-1.5 pt-2.5 flex-1">
+            {[
+              { label: 'Clients', icon: <Users className="w-3.5 h-3.5" />, onClick: () => onNavigate('clients') },
+              { label: 'Calendar', icon: <CalendarIcon className="w-3.5 h-3.5" />, onClick: () => onNavigate('calendar') },
+              { label: 'Analytics', icon: <TrendingUp className="w-3.5 h-3.5" />, onClick: () => onNavigate('analytics') },
+            ].map(a => (
+              <button key={a.label} onClick={a.onClick} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors hover:bg-[#F1EDE7]" style={{ color: T.body }}>
+                <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: T.surfaceWarm, border: `1px solid ${T.border}`, color: T.accent }}>{a.icon}</span>
+                {a.label}
+              </button>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* ══ Bottom Row: Agenda + Pipeline + Health ══ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Today's Agenda */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: T.bg }}>
+            <h3 className="font-semibold text-xs uppercase tracking-wider" style={{ color: T.muted }}>Agenda</h3>
+            <button onClick={() => onNavigate('calendar')} className="text-[10px] font-bold hover:underline cursor-pointer" style={{ color: T.accent }}>Calendar</button>
+          </div>
+          <div className="space-y-2.5 pt-2.5">
+            {todayItems.length > 0 ? todayItems.map(item => (
+              <div key={item.id} className="flex items-start gap-2 cursor-pointer group" onClick={item.onClick}>
+                <span className="mt-0.5 shrink-0">{item.icon}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[11px] font-semibold truncate group-hover:text-amber-900 transition-colors" style={{ color: T.ink }}>{item.title}</div>
+                  <div className="text-[10px] truncate" style={{ color: T.muted }}>{item.subtitle}</div>
+                </div>
+                <span className="text-[9px] font-bold shrink-0 mt-0.5 uppercase tracking-wide px-1.5 py-0.5 rounded border" style={{ borderColor: T.border, color: T.muted }}>{item.time}</span>
+              </div>
+            )) : (
+              <div className="py-4 text-center">
+                <CalendarIcon className="w-4 h-4 mx-auto mb-1.5" style={{ color: T.borderStrong }} />
+                <p className="text-[11px]" style={{ color: T.muted }}>Nothing scheduled</p>
+              </div>
             )}
           </div>
         </Card>
-      )}
 
-      {/* ══ KPI Cards — actionable metrics ══ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiCards.map(m => {
-          const isEmpty = metrics.totalRevenue === 0 && metrics.activeProjects === 0 && metrics.pendingPayments === 0 && metrics.upcoming.length === 0;
-          return (
-            <button
-              key={m.label}
-              onClick={() => onNavigate(m.navigateTo)}
-              className="text-left cursor-pointer"
-            >
-              <Card className="p-5 transition-all duration-300 hover:-translate-y-0.5 h-full">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: T.muted }}>
-                    {m.label}
-                  </span>
-                  {!isEmpty && (
-                    <span
-                      className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
-                      style={
-                        m.up
-                          ? { color: '#1E7D3F', backgroundColor: 'rgba(30,125,63,0.10)' }
-                          : { color: '#B4552F', backgroundColor: 'rgba(180,85,47,0.08)' }
-                      }
-                    >
-                      {m.up ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
-                      {m.delta}
-                    </span>
-                  )}
-                </div>
-                {isEmpty ? (
-                  <div>
-                    <div className="text-[22px] font-bold tracking-tight leading-none mb-2" style={{ color: T.borderStrong }}>—</div>
-                    <p className="text-[11px] font-medium leading-relaxed" style={{ color: T.muted }}>
-                      {m.label === 'This month' && 'Add invoices to track revenue'}
-                      {m.label === 'To collect' && 'No pending payments yet'}
-                      {m.label === 'Active projects' && 'Create your first project'}
-                      {m.label === 'Deadlines' && 'Nothing scheduled yet'}
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
-                      {m.value}
+        {/* Project Pipeline */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: T.bg }}>
+            <h3 className="font-semibold text-xs uppercase tracking-wider" style={{ color: T.muted }}>Pipeline</h3>
+            <button onClick={() => onNavigate('clients')} className="text-[10px] font-bold hover:underline cursor-pointer" style={{ color: T.accent }}>Clients</button>
+          </div>
+          <div className="space-y-3 pt-2.5">
+            {pipelineProjects.length > 0 ? pipelineProjects.map(proj => {
+              const progress = proj.status === 'Completed' ? 100 : proj.status === 'In Progress' ? 60 : 30;
+              return (
+                <div key={proj.id} className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-semibold truncate" style={{ color: T.ink }}>{proj.title}</div>
+                      <div className="text-[10px] truncate" style={{ color: T.muted }}>{proj.clientName}</div>
                     </div>
-                    <p className="text-[11px] font-medium mt-2" style={{ color: T.muted }}>{m.note}</p>
+                    <span className="text-[10px] font-bold shrink-0" style={{ color: T.ink }}>{progress}%</span>
                   </div>
-                )}
-              </Card>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ══ Graph + Attention Split Layout (Compact, Minimalistic & Professional) ══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Revenue Chart (takes 2/3 of space on desktop) */}
-        <Card className="lg:col-span-2 p-5 sm:p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-4">
-              <div>
-                <h3 className="font-semibold text-sm" style={{ color: T.ink }}>Monthly earnings</h3>
-                <p className="text-[11px] mt-0.5" style={{ color: T.muted }}>Money you made from paid invoices, month by month</p>
-                <div className="flex items-baseline gap-2 mt-1.5">
-                  <span className="text-xl font-bold tracking-tight" style={{ color: T.ink }}>
-                    {cur}{(timelineData[timelineData.length - 1]?.amount ?? 0).toLocaleString()}
-                  </span>
-                  <span className="text-[11px]" style={{ color: T.muted }}>
-                    earned in {timelineData[timelineData.length - 1]?.month || 'the latest month'}
-                  </span>
-                  {metrics.revenueOverview.growthPercent > 0 && (
-                    <span className="text-[11px] font-semibold" style={{ color: '#1E7D3F' }}>
-                      +{metrics.revenueOverview.growthPercent}% vs last month
-                    </span>
-                  )}
+                  <div className="w-full h-1 rounded-full" style={{ backgroundColor: T.border }}>
+                    <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${T.accent} 0%, ${T.accentSoft} 100%)` }} />
+                  </div>
                 </div>
+              );
+            }) : (
+              <div className="py-4 text-center">
+                <FolderKanban className="w-4 h-4 mx-auto mb-1.5" style={{ color: T.borderStrong }} />
+                <p className="text-[11px]" style={{ color: T.muted }}>No active projects</p>
               </div>
+            )}
+          </div>
+        </Card>
 
-              <div className="segmented-control shrink-0">
-                {(['30D', '90D', '6M', '1Y'] as const).map(period => (
-                  <button
-                    key={period}
-                    onClick={() => setTimePeriod(period)}
-                    className={`px-2.5 py-1 text-[11px] rounded-md transition-all cursor-pointer ${timePeriod === period ? 'bg-white font-medium shadow-2xs' : ''}`}
-                    style={{ color: timePeriod === period ? T.ink : T.muted }}
-                  >
-                    {period}
-                  </button>
-                ))}
+        {/* Business Health */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: T.bg }}>
+            <h3 className="font-semibold text-xs uppercase tracking-wider" style={{ color: T.muted }}>Health</h3>
+            <span className="text-[10px] font-bold" style={{ color: T.muted }}>&nbsp;</span>
+          </div>
+          <div className="space-y-2.5 pt-2.5">
+            {[
+              { label: 'Cash flow', status: metrics.pendingPayments < metrics.totalRevenue * 0.3 ? 'Healthy' : 'Watch', color: metrics.pendingPayments < metrics.totalRevenue * 0.3 ? T.success : T.warning },
+              { label: 'Pipeline', status: 'Low', color: T.muted },
+              { label: 'Overdue', status: overdueInvoices.length > 0 ? `${overdueInvoices.length} overdue` : 'Clear', color: overdueInvoices.length > 0 ? T.warning : T.success },
+              { label: 'Workload', status: metrics.activeProjects > 8 ? 'High' : metrics.activeProjects > 4 ? 'Medium' : 'Light', color: metrics.activeProjects > 8 ? T.warning : metrics.activeProjects > 4 ? T.accent : T.success },
+            ].map(h => (
+              <div key={h.label} className="flex items-center justify-between text-[11px]">
+                <span className="font-medium" style={{ color: T.body }}>{h.label}</span>
+                <span className="font-bold text-[10px] px-1.5 py-0.5 rounded" style={{ color: h.color, backgroundColor: `${h.color}0D` }}>{h.status}</span>
               </div>
-            </div>
-
-            {/* Professional Chart */}
-            <RevenueChart
-              data={timelineData}
-              currency={cur}
-              height={280}
-              showTarget={false}
-            />
-          </div>
-        </Card>
-
-        {/* Quick Actions — compact, short-height card that keeps the chart row balanced */}
-        <Card className="lg:col-span-1 p-4 sm:p-5 flex flex-col justify-between">
-          <div>
-            <div className="pb-2.5 border-b flex items-center justify-between" style={{ borderColor: T.border }}>
-              <h3 className="font-semibold text-xs uppercase tracking-wider" style={{ color: T.muted }}>Quick actions</h3>
-              <Sparkles className="w-3.5 h-3.5" style={{ color: T.accentSoft }} />
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {[
-                { label: 'Invoice', icon: <Receipt className="w-3.5 h-3.5" />, page: 'invoice-new' as NavPage },
-                { label: 'Proposal', icon: <FileText className="w-3.5 h-3.5" />, page: 'proposal-new' as NavPage },
-                { label: 'Project', icon: <FolderKanban className="w-3.5 h-3.5" />, page: 'projects' as NavPage },
-                { label: 'Client', icon: <Users className="w-3.5 h-3.5" />, page: 'clients' as NavPage }
-              ].map(action => (
-                <button
-                  key={action.label}
-                  onClick={() => onOpenQuickCreate
-                    ? onOpenQuickCreate(action.label.toLowerCase() as 'client' | 'project' | 'proposal' | 'invoice')
-                    : onNavigate(action.page)}
-                  className="group flex flex-col items-start gap-2 p-2.5 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-[0_2px_8px_rgba(74,59,50,0.06)]"
-                  style={{ backgroundColor: '#FAF8F5', borderColor: T.border }}
-                >
-                  <span
-                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors duration-200"
-                    style={{ backgroundColor: '#FFFFFF', border: `1px solid ${T.border}`, color: T.accent }}
-                  >
-                    {action.icon}
-                  </span>
-                  <span className="text-[11px] font-semibold group-hover:text-amber-900 transition-colors" style={{ color: T.body }}>
-                    New {action.label.toLowerCase()}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Compact AI status strip */}
-          <button
-            onClick={() => onNavigate('ai-assistant')}
-            className="mt-3 w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border text-left cursor-pointer transition-all duration-200 hover:shadow-[0_2px_8px_rgba(74,59,50,0.06)]"
-            style={{ background: 'linear-gradient(135deg, #2E2620 0%, #453B33 100%)', borderColor: 'transparent' }}
-          >
-            <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: '#D9C4A5' }} />
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-semibold truncate" style={{ color: '#F8F4EE' }}>AI Copilot ready</div>
-              <div className="text-[9.5px] truncate" style={{ color: 'rgba(248,244,238,0.55)' }}>Draft proposals in seconds →</div>
-            </div>
-          </button>
-        </Card>
-      </div>
-
-      {/* ══ Professional Analytics Section ══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Project Status Breakdown */}
-        <Card className="p-5">
-          <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: T.border }}>
-            <h3 className="font-semibold text-sm" style={{ color: T.ink }}>Project Status Breakdown</h3>
-            <button
-              onClick={() => onNavigate('projects')}
-              className="text-[10px] font-bold hover:underline cursor-pointer transition-colors"
-              style={{ color: T.accent }}
-            >
-              View all →
-            </button>
-          </div>
-          <div className="flex items-center gap-6 mt-4">
-            <ProjectStatusChart
-              data={[
-                { name: 'In Progress', value: metrics.projectStatusBreakdown.active, color: T.accent },
-                { name: 'Completed', value: metrics.projectStatusBreakdown.completed, color: T.success },
-                { name: 'On Hold', value: metrics.projectStatusBreakdown.onHold, color: T.warning },
-                { name: 'Cancelled', value: metrics.projectStatusBreakdown.cancelled, color: T.muted }
-              ]}
-              size={180}
-            />
-            <div className="flex-1 space-y-2">
-              {[
-                { label: 'In Progress', value: metrics.projectStatusBreakdown.active, color: T.accent },
-                { label: 'Completed', value: metrics.projectStatusBreakdown.completed, color: T.success },
-                { label: 'On Hold', value: metrics.projectStatusBreakdown.onHold, color: T.warning },
-                { label: 'Cancelled', value: metrics.projectStatusBreakdown.cancelled, color: T.muted }
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-xs" style={{ color: T.body }}>{item.label}</span>
-                  </div>
-                  <span className="text-xs font-semibold" style={{ color: T.ink }}>{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-
-        {/* Top Clients by Revenue */}
-        <Card className="p-5">
-          <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: T.border }}>
-            <h3 className="font-semibold text-sm" style={{ color: T.ink }}>Top Clients by Revenue</h3>
-            <button
-              onClick={() => onNavigate('clients')}
-              className="text-[10px] font-bold hover:underline cursor-pointer transition-colors"
-              style={{ color: T.accent }}
-            >
-              View all →
-            </button>
-          </div>
-          <TopClientsChart
-            data={metrics.topClients.map(c => ({
-              name: c.name,
-              revenue: c.totalSpent,
-              projects: c.projectsCount
-            }))}
-            currency={cur}
-            height={220}
-          />
-        </Card>
-      </div>
-
-      {/* ══ Overview Row (One elegant, very clean, non-overloaded 3-column row) ══ */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Column 1: Today's Agenda (Concise) */}
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: T.border }}>
-              <h3 className="font-semibold text-xs uppercase tracking-wider text-amber-900/60" style={{ color: T.muted }}>Today's Agenda</h3>
-              <button
-                onClick={() => onNavigate('calendar')}
-                className="text-[10px] font-bold hover:underline cursor-pointer transition-colors"
-                style={{ color: T.accent }}
-              >
-                Calendar →
-              </button>
-            </div>
-
-            <div className="mt-3.5 space-y-3.5">
-              {todayItems.length > 0 ? (
-                todayItems.slice(0, 3).map(item => (
-                  <div
-                    key={item.id}
-                    className="flex items-start gap-2.5 cursor-pointer group transition-colors"
-                    onClick={item.onClick}
-                  >
-                    <div className="flex items-center justify-center w-4 h-4 shrink-0 mt-0.5" style={{ color: T.accent }}>
-                      {item.icon}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[11.5px] font-semibold truncate group-hover:text-amber-900 transition-colors" style={{ color: T.ink }}>{item.title}</div>
-                      <div className="text-[10.5px] mt-0.5 truncate" style={{ color: T.muted }}>{item.subtitle}</div>
-                    </div>
-                    <span className="text-[9.5px] font-bold shrink-0 mt-0.5 uppercase tracking-wide px-1.5 py-0.2 bg-[#FAF8F5] border rounded-md" style={{ borderColor: T.border, color: T.muted }}>{item.time}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center py-5 text-center">
-                  <CalendarIcon className="w-5 h-5 mb-2" style={{ color: T.borderStrong }} />
-                  <p className="text-[12px] font-semibold mb-0.5" style={{ color: T.ink }}>Nothing scheduled</p>
-                  <p className="text-[11px]" style={{ color: T.muted }}>Add events to plan your week</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4 pt-2.5 border-t" style={{ borderColor: T.border }}>
-            <button
-              onClick={() => onNavigate('calendar')}
-              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider cursor-pointer hover:text-amber-900 transition-colors"
-              style={{ color: T.accent }}
-            >
-              <Plus className="w-3 h-3" />
-              Schedule event
-            </button>
-          </div>
-        </Card>
-
-        {/* Column 2: Project Pipeline (Very compact) */}
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-2.5 border-b" style={{ borderColor: T.border }}>
-              <h3 className="font-semibold text-xs uppercase tracking-wider text-amber-900/60" style={{ color: T.muted }}>Active Pipeline</h3>
-              <button
-                onClick={() => onNavigate('projects')}
-                className="text-[10px] font-bold hover:underline cursor-pointer transition-colors"
-                style={{ color: T.accent }}
-              >
-                Projects →
-              </button>
-            </div>
-
-            <div className="mt-3.5 space-y-3.5">
-              {pipelineProjects.length > 0 ? (
-                pipelineProjects.map(proj => {
-                  const progress = proj.tasks && proj.tasks.length > 0
-                    ? Math.round((proj.tasks.filter(t => t.completed).length / proj.tasks.length) * 100)
-                    : proj.status === 'Completed' ? 100 : proj.status === 'In Progress' ? 60 : 30;
-                  return (
-                    <div key={proj.id} className="space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="text-[11.5px] font-semibold truncate" style={{ color: T.ink }}>{proj.title}</div>
-                          <div className="text-[10px] mt-0.5 truncate" style={{ color: T.muted }}>{proj.clientName}</div>
-                        </div>
-                        <span className="text-[10px] font-bold shrink-0" style={{ color: T.ink }}>{progress}%</span>
-                      </div>
-                      <div className="w-full h-1 rounded-full" style={{ backgroundColor: T.border }}>
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${progress}%`,
-                            background: `linear-gradient(90deg, ${T.accent} 0%, ${T.accentSoft} 100%)`
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="flex flex-col items-center justify-center py-5 text-center">
-                  <FolderKanban className="w-5 h-5 mb-2" style={{ color: T.borderStrong }} />
-                  <p className="text-[12px] font-semibold mb-0.5" style={{ color: T.ink }}>No active projects</p>
-                  <p className="text-[11px]" style={{ color: T.muted }}>Create a project to get started</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4 pt-2.5 border-t" style={{ borderColor: T.border }}>
-            <button
-              onClick={() => onNavigate('projects')}
-              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider cursor-pointer hover:text-amber-900 transition-colors"
-              style={{ color: T.accent }}
-            >
-              <Plus className="w-3 h-3" />
-              New project
-            </button>
-          </div>
-        </Card>
-
-        {/* Column 3: Business Health (Sleek and typography-focused) */}
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div>
-            <div className="pb-2.5 border-b" style={{ borderColor: T.border }}>
-              <h3 className="font-semibold text-xs uppercase tracking-wider text-amber-900/60" style={{ color: T.muted }}>Vitals & Health</h3>
-            </div>
-            <div className="mt-3.5 space-y-3">
-              {healthIndicators.map(h => (
-                <div key={h.label} className="flex items-center justify-between text-[11px] pb-1 border-b border-[#FAF8F5]/80 last:border-b-0">
-                  <span className="font-medium" style={{ color: T.body }}>{h.label}</span>
-                  <span className="font-bold px-1.5 py-0.2 rounded text-[10px]" style={{ color: h.color, backgroundColor: `${h.color}0D` }}>
-                    {h.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 pt-2.5 border-t flex justify-between items-center text-[10px]" style={{ borderColor: T.border }}>
-            <span style={{ color: T.muted }}>Auto-reconciled daily</span>
-            <button
-              onClick={() => onNavigate('analytics')}
-              className="font-bold uppercase tracking-wider hover:underline cursor-pointer"
-              style={{ color: T.accent }}
-            >
-              Analytics →
-            </button>
+            ))}
           </div>
         </Card>
       </div>
