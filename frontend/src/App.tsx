@@ -378,9 +378,9 @@ function AppContent() {
             <ScrollToTop />
             <Routes>
                 {/* ── Public routes ── */}
-                <Route path="/" element={<LandingPage onEnterApp={handleLaunchDemo} onLogin={() => navigate('/login')} onRegister={() => navigate('/register')} />} />
-                <Route path="/login" element={<LoginPage onLoginSuccess={handleLoginSuccess} onNavigateRegister={() => navigate('/register')} onNavigateLanding={() => navigate('/')} />} />
-                <Route path="/register" element={<RegisterPage onRegisterSuccess={handleRegisterSuccess} onNavigateLogin={() => navigate('/login')} onNavigateLanding={() => navigate('/')} />} />
+                <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage onEnterApp={handleLaunchDemo} onLogin={() => navigate('/login')} onRegister={() => navigate('/register')} />} />
+                <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage onLoginSuccess={handleLoginSuccess} onNavigateRegister={() => navigate('/register')} onNavigateLanding={() => navigate('/')} />} />
+                <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage onRegisterSuccess={handleRegisterSuccess} onNavigateLogin={() => navigate('/login')} onNavigateLanding={() => navigate('/')} />} />
                 <Route path="/onboarding" element={user ? <OnboardingPage user={user} onComplete={handleOnboardingComplete} onNavigateLanding={() => navigate('/')} /> : <Navigate to="/login" replace />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
@@ -389,7 +389,7 @@ function AppContent() {
 
                 {/* ── Authenticated routes ── */}
                 <Route element={user ? <Shell currentPage={currentPage} onNavigate={handleNavigate} user={user} onLogout={handleLogout} onOpenQuickCreate={handleQuickCreate} onResetSeed={handleResetDemo} searchData={{ clients, projects, invoices }} activities={metrics?.recentActivities || []}><Outlet /></Shell> : <Navigate to="/login" replace />}>
-                    <Route path="/dashboard" element={!onboarded ? <Navigate to="/onboarding" replace /> : <DashboardPage metrics={metrics ?? EMPTY_METRICS} user={user} invoices={invoices} projects={projects} onNavigate={handleNavigate} onOpenQuickCreate={handleQuickCreate} isLoading={isLoading && metrics === null} />} />
+                    <Route path="/dashboard" element={!onboarded ? <Navigate to="/onboarding" replace /> : <DashboardPage metrics={metrics ?? EMPTY_METRICS} user={user} clients={clients} invoices={invoices} projects={projects} onNavigate={handleNavigate} onOpenQuickCreate={handleQuickCreate} isLoading={isLoading && metrics === null} />} />
 
                     {/* ── Client routes ── */}
                     <Route path="/clients" element={<ClientsPage clients={clients} isLoading={isLoading} onSelectClient={id => navigate(`/clients/${id}`)} onCreateClient={handleCreateClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} />} />

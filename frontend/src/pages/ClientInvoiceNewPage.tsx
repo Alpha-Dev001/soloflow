@@ -56,6 +56,9 @@ export const ClientInvoiceNewPage: React.FC<ClientInvoiceNewPageProps> = ({ onBa
   const [dueDate, setDueDate] = useState(defaultDueDate);
   const [taxRate, setTaxRate] = useState(0);
   const [notes, setNotes] = useState('');
+  // Track which fields are "user-touched" so we can show empty inputs for fresh items
+  const [touchedUnitPrice, setTouchedUnitPrice] = useState<Record<string, boolean>>({});
+
   const [items, setItems] = useState<InvoiceItem[]>([
     { id: '1', description: '', quantity: 1, unitPrice: 0, amount: 0 }
   ]);
@@ -80,14 +83,25 @@ export const ClientInvoiceNewPage: React.FC<ClientInvoiceNewPageProps> = ({ onBa
   };
 
   const handleAddItem = () => {
-    setItems([...items, { id: String(Date.now()), description: '', quantity: 1, unitPrice: 0, amount: 0 }]);
+    const newId = String(Date.now());
+    setItems([...items, { id: newId, description: '', quantity: 1, unitPrice: 0, amount: 0 }]);
   };
 
   const handleItemChange = (idx: number, field: keyof InvoiceItem, val: any) => {
     const copy = [...items];
-    copy[idx] = { ...copy[idx], [field]: val };
-    if (field === 'quantity' || field === 'unitPrice') {
-      copy[idx].amount = (copy[idx].quantity || 0) * (copy[idx].unitPrice || 0);
+    if (field === 'unitPrice') {
+      // Allow empty string while typing; treat empty as 0 for calculation
+      const numVal = val === '' ? 0 : Number(val);
+      copy[idx] = { ...copy[idx], [field]: numVal };
+      copy[idx].amount = (copy[idx].quantity || 0) * (numVal || 0);
+      // Mark this unit price field as touched
+      setTouchedUnitPrice(prev => ({ ...prev, [String(copy[idx].id)]: true }));
+    } else {
+      copy[idx] = { ...copy[idx], [field]: val };
+      if (field === 'quantity') {
+        const price = copy[idx].unitPrice;
+        copy[idx].amount = (val || 0) * (price || 0);
+      }
     }
     setItems(copy);
     // Clear item errors for this field
@@ -144,7 +158,7 @@ export const ClientInvoiceNewPage: React.FC<ClientInvoiceNewPageProps> = ({ onBa
         valid = false;
       }
       if (item.unitPrice < 0) {
-        errors.unitPrice = 'Price cannot be negative';
+        errors.unitPrice = 'Rate cannot be negative';
         valid = false;
       }
       if (Object.keys(errors).length > 0) ie[idx] = errors;
@@ -339,9 +353,10 @@ export const ClientInvoiceNewPage: React.FC<ClientInvoiceNewPageProps> = ({ onBa
                       type="number"
                       min="0"
                       step="0.01"
+                      placeholder="0.00"
                       required
-                      value={item.unitPrice}
-                      onChange={e => handleItemChange(idx, 'unitPrice', Number(e.target.value) || 0)}
+                      value={(touchedUnitPrice[item.id] || item.unitPrice > 0) ? item.unitPrice : ''}
+                      onChange={e => handleItemChange(idx, 'unitPrice', e.target.value)}
                       className={`col-span-3 px-2 py-1.5 text-xs bg-white border rounded-lg text-right focus:outline-none focus:border-[#82694E] ${itemErrors[idx]?.unitPrice ? 'border-[#FF3B30]' : 'border-[#EDE8E1]'}`}
                     />
                     <div className="col-span-1 flex justify-center">

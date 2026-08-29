@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Menu, Plus, UserPlus, FolderPlus, FilePlus, ReceiptText, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Search, Plus, PanelLeftClose, PanelLeftOpen, UserPlus } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { Logo } from '../ui/Logo';
@@ -43,7 +43,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   searchData,
   activities = []
 }) => {
-  const [showQuickMenu, setShowQuickMenu] = useState(false);
+
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -192,57 +192,15 @@ export const Topbar: React.FC<TopbarProps> = ({
       <div className="flex items-center gap-2 sm:gap-2.5">
 
 
-        {/* Quick Create Dropdown */}
-        <div className="relative">
-          <Button
-            variant="primary"
-            size="xs"
-            onClick={() => setShowQuickMenu(!showQuickMenu)}
-            icon={<Plus className="w-3.5 h-3.5" />}
-          >
-            <span>New</span>
-          </Button>
-
-          {showQuickMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowQuickMenu(false)} />
-              <div className="absolute right-0 mt-2 w-48 bg-[#FAF8F5] border border-[#E0D9CF] rounded-xl shadow-xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100"
-                style={{ top: '100%' }}
-              >
-                <button
-                  onClick={() => {
-                    setShowQuickMenu(false);
-                    onOpenQuickCreate ? onOpenQuickCreate('invoice') : onNavigate('invoice-new');
-                  }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-[#1A1918] hover:bg-[#F1EDE7] rounded-lg text-left transition-colors cursor-pointer"
-                >
-                  <ReceiptText className="w-3.5 h-3.5 text-[#6B6158]" />
-                  <span>Create Invoice</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowQuickMenu(false);
-                    onOpenQuickCreate ? onOpenQuickCreate('project') : onNavigate('projects');
-                  }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-[#1A1918] hover:bg-[#F1EDE7] rounded-lg text-left transition-colors cursor-pointer"
-                >
-                  <FolderPlus className="w-3.5 h-3.5 text-[#6B6158]" />
-                  <span>Create Project</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowQuickMenu(false);
-                    onOpenQuickCreate ? onOpenQuickCreate('client') : onNavigate('clients');
-                  }}
-                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-[#1A1918] hover:bg-[#F1EDE7] rounded-lg text-left transition-colors cursor-pointer"
-                >
-                  <UserPlus className="w-3.5 h-3.5 text-[#6B6158]" />
-                  <span>Add Client</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        {/* Add Client Button — navigates directly to clients page */}
+        <Button
+          variant="primary"
+          size="xs"
+          onClick={() => onNavigate('clients')}
+          icon={<UserPlus className="w-3.5 h-3.5" />}
+        >
+          <span>Add Client</span>
+        </Button>
 
         {/* User Profile avatar */}
         <div

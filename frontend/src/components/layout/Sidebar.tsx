@@ -6,7 +6,6 @@ import {
   Calendar as CalendarIcon,
   BarChart3,
   LogOut,
-  Globe,
   Shield,
   Crown,
   Settings
@@ -167,22 +166,7 @@ export const Sidebar: FC<SidebarProps> = ({
               )}
             </button>
 
-            {!isCollapsed && (
-              <div className="flex items-center gap-0.5">
-                {/* Landing page link */}
-                <button
-                  onClick={() => onNavigate('landing')}
-                  title="View Public Landing Page"
-                  aria-label="View Public Landing Page"
-                  className="hidden lg:flex text-white/65 hover:text-white p-1.5 rounded-lg transition-colors cursor-pointer"
-                  style={{ transitionProperty: 'color, background-color' }}
-                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                >
-                  <Globe className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
+
           </div>
 
           {/* Navigation Links */}

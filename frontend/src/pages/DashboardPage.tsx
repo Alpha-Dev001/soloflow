@@ -8,21 +8,18 @@ import {
   TrendingUp,
   Clock,
   ArrowRight,
-  Zap,
-  LayoutDashboard,
-  ChevronRight,
-  FileText
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Avatar } from '../components/ui/Avatar';
-import { RevenueChart } from '../components/charts/RevenueChart';
-import type { DashboardMetrics, User, Invoice, Project } from '../types';
+import { GrowthChart } from '../components/charts/GrowthChart';
+import type { DashboardMetrics, User, Client, Invoice, Project } from '../types';
 import type { NavPage } from '../components/layout/Sidebar';
 
 interface DashboardPageProps {
   metrics: DashboardMetrics;
   user: User | null;
+  clients: Client[];
   invoices: Invoice[];
   projects: Project[];
   isLoading?: boolean;
@@ -113,6 +110,7 @@ function DashboardSkeleton() {
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   metrics,
   user,
+  clients,
   invoices,
   projects,
   isLoading = false,
@@ -149,10 +147,33 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return items.slice(0, 3);
   }, [overdueInvoices, projects, onNavigate]);
 
-  const timelineData = useMemo(() => {
-    const all = metrics.revenueOverview.timeline;
-    return all.slice(-6);
-  }, [metrics.revenueOverview.timeline]);
+  // Build growth data from workspace entities (projects, clients, invoices by month)
+  const growthData = useMemo(() => {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const now = new Date();
+    const points: { month: string; projects: number; clients: number; invoices: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mIdx = d.getMonth();
+      const y = d.getFullYear();
+      const monthStart = new Date(y, mIdx, 1).getTime();
+      const monthEnd = new Date(y, mIdx + 1, 0, 23, 59, 59).getTime();
+      const projCount = projects.filter(p => {
+        const t = new Date(p.createdAt).getTime();
+        return t >= monthStart && t <= monthEnd;
+      }).length;
+      const clientCount = clients.filter(c => {
+        const t = new Date(c.createdAt).getTime();
+        return t >= monthStart && t <= monthEnd;
+      }).length;
+      const invCount = invoices.filter(inv => {
+        const t = new Date(inv.createdAt).getTime();
+        return t >= monthStart && t <= monthEnd;
+      }).length;
+      points.push({ month: months[mIdx], projects: projCount, clients: clientCount, invoices: invCount });
+    }
+    return points;
+  }, [projects, clients, invoices]);
 
   const todayItems = useMemo(() => {
     const items: { id: string; time: string; title: string; subtitle: string; icon: React.ReactNode; onClick: () => void }[] = [];
@@ -232,22 +253,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           ))}
         </div>
 
-        {/* ── Revenue Chart + Quick Actions ── */}
+        {/* ── Growth Chart + Quick Actions ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card className="lg:col-span-2 p-5">
             <div className="flex items-center justify-between pb-3">
               <div>
-                <h3 className="font-semibold text-xs" style={{ color: T.ink }}>Revenue</h3>
-                <p className="text-[10px] mt-0.5" style={{ color: T.muted }}>Monthly earnings from paid invoices</p>
+                <h3 className="font-semibold text-xs" style={{ color: T.ink }}>Workspace Growth</h3>
+                <p className="text-[10px] mt-0.5" style={{ color: T.muted }}>Projects, clients & invoices added over time</p>
               </div>
             </div>
-            <div className="h-44 rounded-lg flex items-center justify-center" style={{ backgroundColor: T.bg }}>
-              <div className="text-center">
-                <TrendingUp className="w-6 h-6 mx-auto mb-2" style={{ color: T.borderStrong }} />
-                <p className="text-[11px] font-medium" style={{ color: T.muted }}>Revenue will appear here</p>
-                <p className="text-[10px] mt-0.5" style={{ color: T.muted }}>Issue your first invoice to start tracking</p>
-              </div>
-            </div>
+            <GrowthChart data={growthData} height={200} />
           </Card>
 
           <Card className="p-4 flex flex-col">
@@ -383,24 +398,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       )}
 
-      {/* ══ Revenue Chart + Quick Actions ══ */}
+      {/* ══ Growth Chart + Quick Actions ══ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 p-4">
           <div className="flex items-center justify-between pb-3">
             <div>
-              <h3 className="font-semibold text-xs" style={{ color: T.ink }}>Revenue</h3>
-              <p className="text-[10px] mt-0.5" style={{ color: T.muted }}>Monthly earnings from paid invoices</p>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-base font-bold" style={{ color: T.ink }}>
-                {cur}{(timelineData[timelineData.length - 1]?.amount ?? 0).toLocaleString()}
-              </span>
-              {metrics.revenueOverview.growthPercent > 0 && (
-                <span className="text-[10px] font-semibold" style={{ color: T.success }}>+{metrics.revenueOverview.growthPercent}%</span>
-              )}
+              <h3 className="font-semibold text-xs" style={{ color: T.ink }}>Workspace Growth</h3>
+              <p className="text-[10px] mt-0.5" style={{ color: T.muted }}>Projects, clients & invoices added over time</p>
             </div>
           </div>
-          <RevenueChart data={timelineData} currency={cur} height={200} showTarget={false} />
+          <GrowthChart data={growthData} height={200} />
         </Card>
 
         <Card className="p-4 flex flex-col">

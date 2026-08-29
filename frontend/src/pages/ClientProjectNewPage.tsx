@@ -52,7 +52,7 @@ export const ClientProjectNewPage: React.FC<ClientProjectNewPageProps> = ({ onBa
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    budget: 0,
+    budget: null as number | null,
     priority: 'Medium' as ProjectPriority,
     status: 'To Do' as ProjectStatus,
     deadline: '',
@@ -103,8 +103,10 @@ export const ClientProjectNewPage: React.FC<ClientProjectNewPageProps> = ({ onBa
     }
 
     if (!field || field === 'budget') {
-      if (formData.budget < 0) e.budget = 'Budget cannot be negative';
-      else if (formData.budget > 10000000) e.budget = 'Budget must be under $10M';
+      if (formData.budget !== null) {
+        if (formData.budget < 0) e.budget = 'Budget cannot be negative';
+        else if (formData.budget > 10000000) e.budget = 'Budget must be under $10M';
+      }
     }
 
     return e;
@@ -160,7 +162,7 @@ export const ClientProjectNewPage: React.FC<ClientProjectNewPageProps> = ({ onBa
       await api.createClientProject(clientId, {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        budget: formData.budget,
+        budget: formData.budget || 0,
         priority: formData.priority,
         status: formData.status,
         deadline: formData.deadline,
@@ -261,8 +263,8 @@ export const ClientProjectNewPage: React.FC<ClientProjectNewPageProps> = ({ onBa
                 type="number"
                 min="0"
                 step="100"
-                value={formData.budget}
-                onChange={e => updateField('budget', Number(e.target.value))}
+                value={formData.budget ?? ''}
+                onChange={e => updateField('budget', e.target.value === '' ? null : Number(e.target.value))}
                 onFocus={handleFocus}
                 onBlur={(e) => handleFieldBlur(e, 'budget')}
                 placeholder="0"

@@ -2,15 +2,12 @@ import React, { useState } from 'react';
 import {
   User as UserIcon,
   Globe,
-  Shield,
   Save,
-  RotateCcw,
   Crown,
   CheckCircle2,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { useToast } from '../components/ui/Toast';
 import type { User } from '../types';
 
@@ -23,10 +20,9 @@ interface SettingsPageProps {
 export const SettingsPage: React.FC<SettingsPageProps> = ({
   user,
   onUpdateProfile,
-  onResetDemo,
 }) => {
   const { showToast } = useToast();
-  const [activeSection, setActiveSection] = useState<'profile' | 'account' | 'system'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'account'>('profile');
 
   // Profile form
   const [name, setName] = useState(user?.name || '');
@@ -34,7 +30,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [email, setEmail] = useState(user?.email || '');
   const [currency, setCurrency] = useState(user?.currency || 'USD');
   const [isSaving, setIsSaving] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +47,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const sections = [
     { id: 'profile' as const, label: 'Profile', icon: UserIcon },
     { id: 'account' as const, label: 'Account', icon: Crown },
-    { id: 'system' as const, label: 'System', icon: Shield },
   ];
 
   const inputClass = 'w-full px-2.5 py-1.5 text-xs bg-white border border-[#EDE8E1] rounded-lg focus:outline-none focus:border-[#82694E] focus:ring-2 focus:ring-[#82694E]/15 transition-all';
@@ -142,7 +136,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       <option value="USD">USD ($)</option>
                       <option value="EUR">EUR (€)</option>
                       <option value="GBP">GBP (£)</option>
+                      <option value="RWF">RWF (RWF)</option>
+                      <option value="KES">KES (KSh)</option>
+                      <option value="NGN">NGN (₦)</option>
                       <option value="CAD">CAD ($)</option>
+                      <option value="AUD">AUD ($)</option>
                     </select>
                   </div>
                 </div>
@@ -195,51 +193,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </Card>
           )}
 
-          {/* ── System Section ── */}
-          {activeSection === 'system' && (
-            <Card padding="md" className="space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-[#EDE8E1]">
-                <Shield className="w-4 h-4" style={{ color: '#82694E' }} />
-                <h3 className="font-semibold text-xs text-[#1A1918]">System</h3>
-              </div>
-
-              <div className="p-3 rounded-lg bg-[#FF9500]/10 border border-[#FF9500]/20">
-                <p className="text-[11px] font-medium text-[#C97100]">Reset Demo Data</p>
-                <p className="text-[10px] text-[#8C8278] mt-0.5">
-                  Restore the workspace to its initial demo state with sample clients, projects, invoices, and calendar events.
-                </p>
-              </div>
-
-              <div className="flex justify-start pt-1">
-                <Button
-                  onClick={() => setConfirmReset(true)}
-                  variant="secondary"
-                  size="sm"
-                  icon={<RotateCcw className="w-3 h-3" />}
-                >
-                  Reset Workspace
-                </Button>
-              </div>
-            </Card>
-          )}
         </div>
       </div>
-
-      {/* Reset Confirmation */}
-      <ConfirmDialog
-        isOpen={confirmReset}
-        onClose={() => setConfirmReset(false)}
-        onConfirm={async () => {
-          setConfirmReset(false);
-          await onResetDemo();
-          showToast('Workspace reset to demo data', 'success');
-        }}
-        tone="warning"
-        title="Reset workspace?"
-        description="All clients, projects, invoices, and calendar events will be replaced with the original demo seed data."
-        confirmLabel="Reset workspace"
-        cancelLabel="Keep my data"
-      />
     </div>
   );
 };

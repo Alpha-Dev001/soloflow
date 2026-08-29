@@ -464,93 +464,43 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <p className="text-[15px] mt-4" style={{ color: T.body }}>No hidden fees. Cancel anytime.</p>
         </Reveal>
 
-        <Reveal stagger className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Starter — card */}
+        <Reveal className="flex justify-center">
+          {/* Single Free Plan Card */}
           <div
-            className="pricing-card-light rounded-2xl border p-8 flex flex-col relative overflow-hidden texture-light transition-colors duration-200"
-            style={{ backgroundColor: '#F5F2EE', borderColor: T.border, boxShadow: '0 1px 2px rgba(74,59,50,0.03)' }}
+            className="pricing-card-light rounded-2xl border p-8 sm:p-10 flex flex-col relative overflow-hidden texture-light transition-colors duration-200 w-full max-w-lg"
+            style={{ backgroundColor: '#F5F2EE', borderColor: T.border, boxShadow: '0 4px 24px rgba(74,59,50,0.08)' }}
           >
-            <div className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: T.accent }}>Starter</div>
-            <div className="flex items-baseline gap-1 mb-2">
-              <span className="text-[36px] sm:text-[42px] font-bold tracking-tight leading-none">Free forever</span>
+            {/* Popular badge */}
+            <div className="absolute top-4 right-4 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ backgroundColor: T.accent, color: '#FFFFFF' }}>
+              Most popular
             </div>
-            <p className="text-[13px] font-medium mb-8" style={{ color: T.body }}>Perfect for getting started.</p>
-            <ul className="space-y-3 mb-10 flex-1">
+            <div className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: T.accent }}>Free Plan</div>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-[52px] sm:text-[60px] font-bold tracking-tight leading-none">$0</span>
+              <span className="text-[15px] font-semibold" style={{ color: T.muted }}>/month</span>
+            </div>
+            <p className="text-[13px] font-medium mb-1" style={{ color: T.body }}>Free forever — no credit card required.</p>
+            <p className="text-[12px] font-medium mb-6" style={{ color: T.muted }}>
+              30-day free trial of all Pro features, then downgrade to free automatically.
+            </p>
+            <ul className="space-y-3 mb-8 flex-1">
               {[
-                'Up to 2 active clients',
-                '1 active project board',
-                '3 invoices per month',
-                'Manual proposal editor',
+                'Unlimited clients & projects',
+                'Unlimited invoices & payment tracking',
+                'AI Proposal Generator',
+                'Financial analytics & reports',
+                'Deadline & payment calendar',
+                'Custom branding & PDF exports',
               ].map(item => (
                 <li key={item} className="flex items-start gap-2.5 text-[13px] font-medium" style={{ color: T.ink }}>
                   <CheckCircle2 className="w-4 h-4 mt-[1px] shrink-0" style={{ color: T.accent }} />
                   {item}
                 </li>
               ))}
-              {[
-                'AI Proposal Generator',
-                'AI Business Assistant',
-                'Financial analytics & reports',
-              ].map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-[13px]" style={{ color: T.muted }}>
-                  <span className="w-4 shrink-0 text-center font-bold text-[11px] opacity-60">✕</span>
-                  <span className="opacity-75">{item}</span>
-                </li>
-              ))}
             </ul>
-            <Button onClick={onRegister} variant="outline" className="w-full">
-              Get started free
+            <Button onClick={onRegister} variant="primary" size="lg" className="w-full" iconRight={<ArrowRight className="w-4 h-4" />}>
+              Start for free
             </Button>
-          </div>
-
-          {/* Pro — dark card */}
-          <div
-            className="pricing-card-dark rounded-2xl border p-8 flex flex-col relative overflow-hidden texture-linen-dark transition-colors duration-200"
-            style={{
-              backgroundColor: T.dark,
-              backgroundImage: [
-                'radial-gradient(ellipse 80% 55% at 85% -10%, rgba(201,183,158,0.22) 0%, transparent 62%)',
-                'linear-gradient(155deg, #544436 0%, #47392C 48%, #3A2E22 100%)',
-              ].join(', '),
-              borderColor: 'rgba(147,122,98,0.35)',
-              boxShadow: '0 24px 56px -18px rgba(42,35,32,0.5)',
-            }}
-          >
-            <div
-              aria-hidden
-              className="absolute -top-24 -right-24 w-[320px] h-[320px] rounded-full pointer-events-none"
-              style={{ background: 'radial-gradient(circle, rgba(147,122,98,0.20) 0%, transparent 70%)' }}
-            />
-            <div className="relative z-10 flex flex-col flex-1">
-              <div className="absolute top-0 right-0 text-[10px] font-bold uppercase tracking-widest text-white/55">
-                Most popular
-              </div>
-              <div className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: T.accentSoft }}>Pro</div>
-              <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-[48px] font-bold tracking-tight leading-none text-white">$19</span>
-                <span className="text-[13px] font-semibold text-white/70">/mo</span>
-              </div>
-              <p className="text-[13px] font-medium text-white/85 mb-8">For serious freelancers ready to scale.</p>
-              <ul className="space-y-3 mb-10 flex-1">
-                {[
-                  'Unlimited clients & active projects',
-                  'Unlimited AI proposal generator',
-                  'AI Business Assistant (rate & scope advice)',
-                  'Unlimited invoicing & payment tracking',
-                  'Financial analytics & win-rate metrics',
-                  'Unified deadline & payment calendar',
-                  'Custom branding & PDF exports',
-                ].map(item => (
-                  <li key={item} className="flex items-start gap-2.5 text-[13px] font-medium text-white/90">
-                    <CheckCircle2 className="w-4 h-4 mt-[1px] shrink-0" style={{ color: T.accentSoft }} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Button onClick={onRegister} variant="secondary" className="w-full">
-                Start 14-day free trial
-              </Button>
-            </div>
           </div>
         </Reveal>
       </section>

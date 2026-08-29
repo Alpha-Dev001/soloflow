@@ -73,6 +73,21 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
   const pendingInvoices = invoices.filter(i => i.status !== 'Paid' && i.status !== 'Draft');
   const pendingValue = pendingInvoices.reduce((s, i) => s + i.total, 0);
 
+  // Project status breakdown
+  const todoProjects = projects.filter(p => p.status === 'To Do').length;
+  const inProgressProjects = projects.filter(p => p.status === 'In Progress').length;
+  const completedProjects = projects.filter(p => p.status === 'Completed').length;
+  const totalProjects = projects.length;
+
+  // Client status breakdown
+  const activeClients = clients.filter(c => c.status === 'Active').length;
+  const leadClients = clients.filter(c => c.status === 'Lead').length;
+
+  // Invoice status breakdown
+  const paidInvoices = invoices.filter(i => i.status === 'Paid').length;
+  const overdueInvoices = invoices.filter(i => i.status === 'Overdue').length;
+  const sentInvoices = invoices.filter(i => i.status === 'Sent').length;
+
   // True when the account has no data at all — show an onboarding nudge
   const isEmpty = invoices.length === 0 && projects.length === 0 && clients.length === 0;
 
@@ -144,88 +159,82 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
       </div>
 
 
-      {/* 4 Metric Cards */}
+      {/* 4 Metric Cards — project/client/invoice focused */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Revenue */}
+        {/* Total Clients */}
         <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: T.muted }}>
-              Total Revenue
+              Total Clients
             </span>
-            {totalRevenue > 0 ? (
-              <span
-                className="inline-flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded-md"
-                style={{ color: '#248A3D', backgroundColor: 'rgba(52,199,89,0.10)' }}
-              >
+            {activeClients > 0 ? (
+              <span className="inline-flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded-md" style={{ color: '#248A3D', backgroundColor: 'rgba(52,199,89,0.10)' }}>
+                {activeClients} active
+              </span>
+            ) : null}
+          </div>
+          <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
+            {clients.length}
+          </div>
+          <p className="text-[11px] mt-2" style={{ color: T.muted }}>
+            {leadClients > 0 ? `${leadClients} leads to convert` : 'All clients active'}
+          </p>
+        </Card>
+
+        {/* Projects Overview */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: T.muted }}>
+              Projects
+            </span>
+            <span className="text-[10px]" style={{ color: T.muted }}>
+              {completedProjects} completed
+            </span>
+          </div>
+          <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
+            {totalProjects}
+          </div>
+          <p className="text-[11px] mt-2" style={{ color: T.muted }}>
+            {inProgressProjects} in progress · {todoProjects} to start
+          </p>
+        </Card>
+
+        {/* Invoices Overview */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: T.muted }}>
+              Invoices
+            </span>
+            <span className="text-[10px]" style={{ color: T.muted }}>
+              {paidInvoices} paid
+            </span>
+          </div>
+          <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
+            {invoices.length}
+          </div>
+          <p className="text-[11px] mt-2" style={{ color: T.muted }}>
+            {overdueInvoices > 0 ? `${overdueInvoices} overdue` : 'No overdue invoices'}
+          </p>
+        </Card>
+
+        {/* Collection Rate */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: T.muted }}>
+              Collection Rate
+            </span>
+            {collectionRate > 0 ? (
+              <span className="inline-flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded-md" style={{ color: collectionRate >= 80 ? '#248A3D' : '#B4552F', backgroundColor: collectionRate >= 80 ? 'rgba(52,199,89,0.10)' : 'rgba(180,85,47,0.10)' }}>
                 <ArrowUpRight className="w-3 h-3 mr-0.5" /> {collectionRate}%
               </span>
             ) : null}
           </div>
-          {totalRevenue > 0 ? (
-            <>
-              <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
-                ${totalRevenue.toLocaleString()}
-              </div>
-              <p className="text-[11px] mt-2" style={{ color: T.muted }}>
-                ${totalInvoiced.toLocaleString()} invoiced
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="text-[22px] font-bold tracking-tight leading-none mb-1" style={{ color: T.borderStrong }}>$0</div>
-              <p className="text-[11px] mt-1 leading-relaxed" style={{ color: T.muted }}>Issue & collect invoices to track revenue</p>
-            </>
-          )}
-        </Card>
-
-        {/* Avg Deal Size */}
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: T.muted }}>
-              Avg Deal Size
-            </span>
-            <span className="text-[10px]" style={{ color: T.muted }}>
-              {clients.length} accounts
-            </span>
+          <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
+            {collectionRate > 0 ? `${collectionRate}%` : '—'}
           </div>
-          {avgDealSize > 0 ? (
-            <>
-              <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
-                ${avgDealSize.toLocaleString()}
-              </div>
-              <p className="text-[11px] mt-2" style={{ color: T.muted }}>Per active client</p>
-            </>
-          ) : (
-            <>
-              <div className="text-[22px] font-bold tracking-tight leading-none mb-1" style={{ color: T.borderStrong }}>—</div>
-              <p className="text-[11px] mt-1 leading-relaxed" style={{ color: T.muted }}>Add your first client to see deal size</p>
-            </>
-          )}
-        </Card>
-
-        {/* Active Projects */}
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: T.muted }}>
-              Active Projects
-            </span>
-            <span className="text-[10px] font-medium" style={{ color: T.body }}>
-              {completedProjectsCount} done
-            </span>
-          </div>
-          {projects.length > 0 ? (
-            <>
-              <div className="text-[26px] font-bold tracking-tight leading-none" style={{ color: T.ink }}>
-                {activeProjectsCount}
-              </div>
-              <p className="text-[11px] mt-2" style={{ color: T.muted }}>In progress</p>
-            </>
-          ) : (
-            <>
-              <div className="text-[22px] font-bold tracking-tight leading-none mb-1" style={{ color: T.borderStrong }}>0</div>
-              <p className="text-[11px] mt-1 leading-relaxed" style={{ color: T.muted }}>Create your first project to begin</p>
-            </>
-          )}
+          <p className="text-[11px] mt-2" style={{ color: T.muted }}>
+            ${totalRevenue.toLocaleString()} of ${totalInvoiced.toLocaleString()} invoiced
+          </p>
         </Card>
       </div>
 

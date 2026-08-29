@@ -4,12 +4,11 @@ import {
   Send,
   CheckCircle2,
   Printer,
-  Download,
   Trash2,
   MoreHorizontal,
   Copy,
   Clock,
-  FileText,
+  Edit2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Card } from '../components/ui/Card';
@@ -110,15 +109,6 @@ export const InvoiceDetailPage: React.FC<InvoiceDetailPageProps> = ({
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
-
-  const handleDownloadPDF = useCallback(() => {
-    // Use the browser print dialog (save as PDF)
-    // We temporarily hide everything except the invoice for a clean PDF
-    const originalTitle = document.title;
-    document.title = invoice ? `${invoice.invoiceNumber} - Invoice` : 'Invoice';
-    window.print();
-    document.title = originalTitle;
-  }, [invoice]);
 
   const handleCopyInvoiceNumber = useCallback(() => {
     if (invoice) {
@@ -300,12 +290,16 @@ export const InvoiceDetailPage: React.FC<InvoiceDetailPageProps> = ({
               </Button>
             )}
 
-            <Button onClick={handleDownloadPDF} variant="secondary" size="sm" icon={<Download className="w-3.5 h-3.5" />}>
-              PDF
-            </Button>
-
             <Button onClick={handlePrint} variant="secondary" size="sm" icon={<Printer className="w-3.5 h-3.5" />}>
               Print
+            </Button>
+
+            <Button onClick={() => { onBack(); }} variant="secondary" size="sm" icon={<Edit2 className="w-3.5 h-3.5" />}>
+              Edit
+            </Button>
+
+            <Button onClick={() => setConfirmDelete(true)} variant="danger" size="sm" icon={<Trash2 className="w-3.5 h-3.5" />}>
+              Delete
             </Button>
 
             {/* More menu */}
