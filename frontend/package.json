@@ -23,6 +23,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.29.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.14.0",
     "@types/react": "^19.0.0",
