@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { AuthLayout } from '../components/auth/AuthLayout';
+import { api } from '../services/api';
 import type { User as UserType } from '../types';
 
 interface RegisterPageProps {
@@ -37,21 +38,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
 
     setIsLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          password
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Registration failed. Please try again.');
-      }
-
+      const data = await api.register(name.trim(), email.trim(), password);
       onRegisterSuccess(data.user, data.token || '');
     } catch (err: any) {
       setErrorMessage(err.message || 'Registration failed. Please check your details.');

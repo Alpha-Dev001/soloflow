@@ -20,11 +20,14 @@ async function bootstrap() {
     'http://localhost:3000',   // Vite dev server (frontend/)
     'http://localhost:5173',   // Vite fallback port
     'http://127.0.0.1:3000',
+    'https://soloflow-v1.vercel.app', // Vercel deployment
   ];
 
-  // Allow the deployed Cloudflare Pages frontend
+  // Allow any custom deployed frontend
   const frontendUrl = configService.get<string>('FRONTEND_URL');
-  if (frontendUrl) corsOrigins.push(frontendUrl);
+  if (frontendUrl && !corsOrigins.includes(frontendUrl)) {
+    corsOrigins.push(frontendUrl);
+  }
 
   app.enableCors({
     origin: corsOrigins,

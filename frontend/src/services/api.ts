@@ -10,6 +10,25 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+/**
+ * Safely parse a response as JSON.
+ * Returns null when the response is not JSON (e.g. HTML 404 page from
+ * a hosting provider) instead of throwing a cryptic parse error.
+ */
+async function safeJson(res: Response): Promise<any> {
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    // Non-JSON response — likely an HTML error page from the host
+    const text = await res.text().catch(() => '');
+    throw new Error(
+      res.ok
+        ? 'The server returned an unexpected response. Please try again later.'
+        : `Server error (${res.status}). ${text.slice(0, 120)}`,
+    );
+  }
+  return res.json();
+}
+
 /** Convert empty-string values to undefined so optional DTO validators pass */
 function sanitizePayload<T extends Record<string, any>>(obj: T): T {
   const out: Record<string, any> = {};
@@ -67,7 +86,7 @@ export const api = {
   async getMe(): Promise<{ user: User }> {
     const res = await apiFetch(`${API_BASE}/auth/me`);
     if (!res.ok) throw new Error('Failed to fetch user');
-    return res.json();
+    return safeJson(res);
   },
 
   async login(email: string, password: string): Promise<{ user: User; token: string }> {
@@ -76,22 +95,22 @@ export const api = {
       body: JSON.stringify({ email, password })
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
+      const err = await safeJson(res).catch(() => ({}));
       throw new Error((err as any).message || 'Login failed');
     }
-    return res.json();
+    return safeJson(res);
   },
 
   async register(name: string, email: string, password: string, company?: string): Promise<{ user: User; token: string }> {
     const res = await apiFetch(`${API_BASE}/auth/register`, {
       method: 'POST',
-      body: JSON.stringify({ name, email, password, company })
+      body: JSON.stringify({ name, email, password, company }),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
+      const err = await safeJson(res).catch(() => ({}));
       throw new Error((err as any).message || 'Registration failed');
     }
-    return res.json();
+    return safeJson(res);
   },
 
   async updateProfile(profile: Partial<User>): Promise<{ user: User }> {

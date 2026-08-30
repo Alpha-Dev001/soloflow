@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { AuthLayout } from '../components/auth/AuthLayout';
+import { api } from '../services/api';
 import type { User } from '../types';
 
 interface LoginPageProps {
@@ -34,17 +35,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
     setIsLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password })
-      });
-
-            const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Invalid email or password.');
-      }
-
+      const data = await api.login(email.trim(), password);
       onLoginSuccess(data.user, data.token || '');
     } catch (err: any) {
       setErrorMessage(err.message || 'Unable to sign in. Please try again.');
