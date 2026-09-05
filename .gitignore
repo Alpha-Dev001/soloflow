@@ -29,3 +29,6 @@ Thumbs.db
 .data/
 coverage/
 bun.lock
+metadata.json
+.freebuff/
+*.txt

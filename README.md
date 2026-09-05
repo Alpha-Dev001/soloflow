@@ -1,6 +1,6 @@
 # SoloFlow
 
-A full-stack freelance business management platform. Manage clients, projects, invoices, and analytics — with AI-powered assistance for business strategy and client communication.
+A full-stack freelance business management platform. Manage clients, projects, invoices, and analytics with AI-powered assistance for business strategy and client communication.
 
 ---
 
@@ -18,7 +18,7 @@ A full-stack freelance business management platform. Manage clients, projects, i
 
 ---
 
-## Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -30,61 +30,15 @@ A full-stack freelance business management platform. Manage clients, projects, i
 
 ---
 
-## Repository Layout
+## Getting Started
 
-```
-soloflow/
-├── frontend/
-│   ├── src/
-│   │   ├── components/        Layout shell, sidebar, UI primitives
-│   │   ├── pages/             19 page components
-│   │   ├── services/api.ts    Typed fetch client (all API calls in one place)
-│   │   └── types.ts           Shared domain interfaces
-│   ├── index.html
-│   ├── vite.config.ts         Dev server on :3000 — proxies /api to :3001
-│   ├── tsconfig.json
-│   └── package.json
-│
-├── backend/
-│   ├── src/
-│   │   ├── auth/              Registration, login, JWT strategy, guard
-│   │   ├── users/             User schema and service
-│   │   ├── clients/           Client CRUD with aggregated spend and project count
-│   │   ├── projects/          Project CRUD, Kanban status transitions
-│   │   ├── invoices/          Invoice CRUD, line items, mark-paid with timestamp
-│   │   ├── calendar/          Manual events + events derived from projects and invoices
-│   │   ├── dashboard/         MongoDB aggregation pipeline for KPIs and revenue timeline
-│   │   ├── analytics/         Aggregated revenue, collection rate, win rate
-│   │   ├── activities/        Internal event log consumed by the dashboard
-│   │   ├── ai/                Gemini-powered business assistant
-│   │   ├── admin/             Admin-only user management and platform stats
-│   │   ├── subscriptions/     Subscription lifecycle and plan management
-│   │   ├── payments/          Payment provider abstraction (mock for now)
-│   │   ├── entitlements/      Plan definitions, feature flags, role guards
-│   │   └── database/seed/     Development seeder (safe to re-run)
-│   ├── .env                   Environment secrets — not committed
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── tsconfig.build.json
-│
-├── DEPLOYMENT.md              Production deployment guide (Render + Cloudflare Pages + Atlas)
-├── ARCHITECTURE.md            Data model, relationships, and API contracts
-├── .env.example               Copy to backend/.env and fill in values
-├── .gitignore
-└── README.md
-```
-
----
-
-## Prerequisites
+### Prerequisites
 
 - Node.js v18 or higher
 - MongoDB running on `localhost:27017`, or a MongoDB Atlas connection string
 - A Google Gemini API key (optional — the application works without it)
 
----
-
-## Getting Started
+### Installation
 
 **1. Configure the backend environment**
 
@@ -163,7 +117,13 @@ cd ../backend && npm run build
 cd backend && npm run start
 ```
 
-For production deployment, see [DEPLOYMENT.md](./DEPLOYMENT.md) for a complete guide covering Render, Cloudflare Pages, and MongoDB Atlas.
+### Deployment
+
+| Layer | Service |
+|-------|---------|
+| **Database** | MongoDB Atlas (free M0) |
+| **Backend API** | Render Web Service |
+| **Frontend SPA** | Cloudflare Pages |
 
 ---
 
@@ -279,7 +239,6 @@ Every resource is scoped to its owner. The backend enforces ownership on every q
 | AI assistant | Limited daily usage | Unlimited |
 | Analytics | Full access | Full access |
 | Calendar | Full access | Full access |
-| Admin features | — | — |
 
 Both plans have unlimited resource limits. The AI daily usage limits are configurable via environment variables.
 

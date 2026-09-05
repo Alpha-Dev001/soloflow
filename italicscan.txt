@@ -1,9 +1,0 @@
-components\auth\AuthLayout.tsx:75: <span className="italic font-light text-[#C9B79E]">effortlessly.</span>
-components\auth\AuthLayout.tsx:94: <blockquote className="text-[13px] font-medium text-white/70 leading-relaxed italic mb-2">
-pages\DemoPage.tsx:101: <span style={{ fontStyle: 'italic', fontWeight: 300, color: T.accent }}>in action</span>
-pages\LandingPage.tsx:327: <span style={{ fontStyle: 'italic', fontWeight: 300, color: T.accent }}>
-pages\LandingPage.tsx:371: <span style={{ fontStyle: 'italic', fontWeight: 300, color: T.accent }}>business needs</span>
-pages\LandingPage.tsx:483: <span style={{ fontStyle: 'italic', fontWeight: 300, color: T.accent }}>answered.</span>
-pages\LandingPage.tsx:556: <span style={{ fontStyle: 'italic', fontWeight: 300, color: T.accentLight }}>the smart way?</span>
-pages\ProposalEditorPage.tsx:488: <p className="text-[11px] italic px-3 py-2 rounded-lg" style={{ color: T.faint, backgroundColor: T.surfaceWarm }}>
-pages\ProposalEditorPage.tsx:537: <p className="text-[11px] italic px-3 py-2 rounded-lg" style={{ color: T.faint, backgroundColor: T.surfaceWarm }}>

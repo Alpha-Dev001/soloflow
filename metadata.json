@@ -1,7 +1,0 @@
-{
-  "name": "SoloFlow",
-  "description": "Premium freelancer business management platform to manage clients, projects, proposals, invoices, calendar, and analytics with AI proposal generation.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
-
