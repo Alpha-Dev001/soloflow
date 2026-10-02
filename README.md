@@ -1,6 +1,6 @@
 # SoloFlow
 
-A full-stack freelance business management platform. Manage clients, projects, invoices, and analytics with AI-powered assistance for business strategy and client communication
+A full-stack freelance business management platform. Manage clients, projects, invoices, and analytics with AI-powered assistance for business strategy and client communication.
 
 ---
 
